@@ -79,12 +79,10 @@ if uploaded_file:
         st.dataframe(formatted_data, use_container_width=True)
 
         chart_types = st.multiselect(
-    "Select chart types to display:",
-    ["Bar Chart", "Line Chart", "Pie Chart"],
-    default=["Bar Chart"]
-),
-           # default=["Bar Chart"]
-       # )
+            "Select chart types to display:",
+            ["Bar Chart", "Line Chart", "Pie Chart"],
+            default=["Bar Chart"]
+        )
 
         chart_width = st.slider("Chart width", 400, 1000, 700)
         chart_height = st.slider("Chart height", 200, 600, 300)
@@ -113,14 +111,14 @@ if uploaded_file:
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(line_chart)
 
-    if "Pie Chart" in chart_types:
-        st.markdown(f"#### 🥧 Pie Chart (Donut) for: {value_column}")
-        pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
-            theta=alt.Theta(field=value_column, type='quantitative'),
-            color=alt.Color(field=label_column, type='nominal'),
-            tooltip=tooltip_vals
-        ).properties(width=chart_height, height=chart_height)
-        st.altair_chart(pie_chart)
+            if "Pie Chart" in chart_types:
+                st.markdown(f"#### 🥧 Pie Chart (Donut) for: {value_column}")
+                pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
+                    theta=alt.Theta(field=value_column, type='quantitative'),
+                    color=alt.Color(field=label_column, type='nominal'),
+                    tooltip=tooltip_vals
+                ).properties(width=chart_height, height=chart_height)
+                st.altair_chart(pie_chart)
         else:
             st.info("ℹ️ No data selected for chart generation.")
 
@@ -151,4 +149,5 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
