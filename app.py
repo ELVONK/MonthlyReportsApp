@@ -1,10 +1,8 @@
-# Enhanced app.py with proper chart formatting and readable tooltips
+# Enhanced app.py with clean chart rendering and error-free structure
 
 import streamlit as st
 import pandas as pd
 import altair as alt
-import io
-import numpy as np
 from zipfile import ZipFile
 from openpyxl import load_workbook
 
@@ -24,133 +22,119 @@ if uploaded_file:
         st.markdown("### 🗂 Select a Sheet to View")
         selected_sheet = st.selectbox("Choose a sheet", sheet_names)
 
-        try:
-            st.markdown(f"## 📄 {selected_sheet}")
-            wb = load_workbook(uploaded_file, data_only=True)
-            ws = wb[selected_sheet]
-            visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, usecols=visible_columns)
+        wb = load_workbook(uploaded_file, data_only=True)
+        ws = wb[selected_sheet]
+        visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+        df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, usecols=visible_columns)
 
-            if 'Department' in df.columns:
-                departments = df['Department'].dropna().unique().tolist()
-                selected_dept = st.selectbox(f"Filter by Department in '{selected_sheet}'", departments)
-                df = df[df['Department'] == selected_dept]
+        if 'Department' in df.columns:
+            departments = df['Department'].dropna().unique().tolist()
+            selected_dept = st.selectbox(f"Filter by Department in '{selected_sheet}'", departments)
+            df = df[df['Department'] == selected_dept]
 
-            st.dataframe(df, use_container_width=True)
+        st.dataframe(df, use_container_width=True)
 
-            csv = df.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="⬇️ Download Table as CSV",
-                data=csv,
-                file_name=f"{selected_sheet}_filtered_data.csv",
-                mime="text/csv"
-            )
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="⬇️ Download Table as CSV",
+            data=csv,
+            file_name=f"{selected_sheet}_filtered_data.csv",
+            mime="text/csv"
+        )
 
-            numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-            non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
-            default_label = non_numeric_columns[0] if non_numeric_columns else None
-            label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
-            value_column = st.selectbox("Select column for values (y-axis):", df.columns.tolist())
+        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+        non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
+        default_label = non_numeric_columns[0] if non_numeric_columns else None
+        label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
+        value_column = st.selectbox("Select column for values (y-axis):", df.columns.tolist())
 
-            selected_rows = []
-            if label_column:
-                unique_labels = df[label_column].dropna().unique().tolist()
-                selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
-                chart_data = df[df[label_column].isin(selected_rows)]
-                if not pd.api.types.is_numeric_dtype(chart_data[value_column]):
-                    grouped_counts = chart_data.groupby(label_column)[value_column].count().reset_index(name='Count')
-                    total = grouped_counts['Count'].sum()
-                    grouped_counts['Count'] = (grouped_counts['Count'] / total * 100).round(2)
-                    value_column = 'Count'
-                    chart_data = grouped_counts
-                    value_column = 'Count'
-            else:
-                chart_data = df[[value_column]].dropna().reset_index()
-                chart_data.rename(columns={'index': 'index_label'}, inplace=True)
-                chart_data['index_label'] = chart_data['index_label'].astype(str)
-                label_column = 'index_label'
-                chart_data[label_column] = chart_data[label_column]
+        if label_column:
+            unique_labels = df[label_column].dropna().unique().tolist()
+            selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
+            chart_data = df[df[label_column].isin(selected_rows)]
+            if not pd.api.types.is_numeric_dtype(chart_data[value_column]):
+                grouped_counts = chart_data.groupby(label_column)[value_column].count().reset_index(name='Count')
+                total = grouped_counts['Count'].sum()
+                grouped_counts['Count'] = (grouped_counts['Count'] / total * 100).round(2)
+                value_column = 'Count'
+                chart_data = grouped_counts
+        else:
+            chart_data = df[[value_column]].dropna().reset_index()
+            chart_data.rename(columns={'index': 'index_label'}, inplace=True)
+            chart_data['index_label'] = chart_data['index_label'].astype(str)
+            label_column = 'index_label'
+            chart_data[label_column] = chart_data[label_column]
 
-            def format_currency(val):
-                if abs(val) >= 1_000_000:
-                    return f"KES {val/1_000_000:.2f}M"
-                elif abs(val) >= 1_000:
-                    return f"KES {val/1_000:.2f}K"
-                return f"KES {val:.2f}"
+        def format_currency(val):
+            if abs(val) >= 1_000_000:
+                return f"KES {val/1_000_000:.2f}M"
+            elif abs(val) >= 1_000:
+                return f"KES {val/1_000:.2f}K"
+            return f"KES {val:.2f}"
 
-            st.markdown("### 📊 Selected Data Preview")
-            formatted_data = chart_data[[label_column, value_column]].dropna().copy()
+        st.markdown("### 📊 Selected Data Preview")
+        formatted_data = chart_data[[label_column, value_column]].dropna().copy()
+        if pd.api.types.is_numeric_dtype(chart_data[value_column]):
+            formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
+        st.dataframe(formatted_data, use_container_width=True)
+
+        chart_types = st.multiselect(
+            "Select chart types to display:",
+            ["Bar Chart", "Line Chart"],
+            default=["Bar Chart"]
+        )
+
+        chart_width = st.slider("Chart width", 400, 1000, 700)
+        chart_height = st.slider("Chart height", 200, 600, 300)
+
+        if not chart_data.empty:
             if pd.api.types.is_numeric_dtype(chart_data[value_column]):
-                formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
-            st.dataframe(formatted_data, use_container_width=True)
-
-            chart_types = st.multiselect(
-                "Select chart types to display:",
-                ["Bar Chart", "Line Chart"],
-                default=["Bar Chart"]
-            )
-
-            chart_width = st.slider("Chart width", 400, 1000, 700)
-            chart_height = st.slider("Chart height", 200, 600, 300)
-
-            if not chart_data.empty:
-                if pd.api.types.is_numeric_dtype(chart_data[value_column]):
-                    tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
-                else:
-                    tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:N", title="Value")]
-
-                if "Bar Chart" in chart_types:
-                    if label_column is not None:
-                        st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
-                        bar_chart = alt.Chart(chart_data).mark_bar().encode(
-                            x=alt.X(f"{label_column}:O", sort="-y"),
-                            y=alt.Y(f"{value_column}:{'Q' if pd.api.types.is_numeric_dtype(chart_data[value_column]) else 'N'}"),
-                            tooltip=tooltip_vals
-                        ).properties(width=chart_width, height=chart_height)
-                        st.altair_chart(bar_chart)
-                    else:
-                        st.info("ℹ️ Please select a label column to display a bar chart.")
-
-                if "Line Chart" in chart_types:
-    if label_column is not None:
-        st.markdown(f"#### 📈 Line Chart for: {value_column}")
-        line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-            x=alt.X(f"{label_column}:O"),
-            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-            tooltip=tooltip_vals
-        ).properties(width=chart_width, height=chart_height)
-        st.altair_chart(line_chart)
-    else:
-        st.info("ℹ️ Please select a label column to display a line chart.")
-    else:
-        st.info("ℹ️ Please select a label column to display a line chart.")
+                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
             else:
-                st.info("ℹ️ No data selected for chart generation.")
+                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:N", title="Value")]
 
-            if "finance" in selected_sheet.lower():
-                st.success("This sheet contains finance-related data including payments and budgets.")
-            elif "hr" in selected_sheet.lower():
-                st.success("This sheet contains HR metrics like training and complaints.")
-            elif "ict" in selected_sheet.lower():
-                st.success("This sheet captures ICT infrastructure and support metrics.")
+            if "Bar Chart" in chart_types:
+                st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
+                bar_chart = alt.Chart(chart_data).mark_bar().encode(
+                    x=alt.X(f"{label_column}:O", sort="-y"),
+                    y=alt.Y(f"{value_column}:{'Q' if pd.api.types.is_numeric_dtype(chart_data[value_column]) else 'N'}"),
+                    tooltip=tooltip_vals
+                ).properties(width=chart_width, height=chart_height)
+                st.altair_chart(bar_chart)
 
-            with ZipFile("workbook_export.zip", "w") as zipf:
-                for sheet in sheet_names:
-                    ws = wb[sheet]
-                    visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-                    df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, usecols=visible_columns)
-                    csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
-                    zipf.writestr(f"{sheet}.csv", csv_bytes)
-            with open("workbook_export.zip", "rb") as f:
-                st.download_button(
-                    label="⬇️ Download Entire Workbook as ZIP of CSVs",
-                    data=f.read(),
-                    file_name="Workbook_Export.zip",
-                    mime="application/zip"
-                )
+            if "Line Chart" in chart_types:
+                st.markdown(f"#### 📈 Line Chart for: {value_column}")
+                line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+                    x=alt.X(f"{label_column}:O"),
+                    y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                    tooltip=tooltip_vals
+                ).properties(width=chart_width, height=chart_height)
+                st.altair_chart(line_chart)
+        else:
+            st.info("ℹ️ No data selected for chart generation.")
 
-        except Exception as e:
-            st.warning(f"⚠️ Could not process sheet '{selected_sheet}': {e}")
+        if "finance" in selected_sheet.lower():
+            st.success("This sheet contains finance-related data including payments and budgets.")
+        elif "hr" in selected_sheet.lower():
+            st.success("This sheet contains HR metrics like training and complaints.")
+        elif "ict" in selected_sheet.lower():
+            st.success("This sheet captures ICT infrastructure and support metrics.")
+
+        with ZipFile("workbook_export.zip", "w") as zipf:
+            for sheet in sheet_names:
+                ws = wb[sheet]
+                visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+                df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, usecols=visible_columns)
+                csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
+                zipf.writestr(f"{sheet}.csv", csv_bytes)
+
+        with open("workbook_export.zip", "rb") as f:
+            st.download_button(
+                label="⬇️ Download Entire Workbook as ZIP of CSVs",
+                data=f.read(),
+                file_name="Workbook_Export.zip",
+                mime="application/zip"
+            )
 
     except Exception as e:
         st.error(f"❌ Failed to read Excel file: {e}")
