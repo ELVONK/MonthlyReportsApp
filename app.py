@@ -115,15 +115,14 @@ if uploaded_file:
                         st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                         fig, ax = plt.subplots()
                         pie_data = chart_data[[label_column, value_column]].dropna()
-                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}
-({row[value_column]}%)", axis=1)
+                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
                         colors = plt.cm.Set3.colors
                         wedges, texts = ax.pie(
                             pie_data[value_column],
                             labels=pie_data['label_text'],
                             startangle=90,
                             colors=colors,
-                            textprops={'fontsize': 10}
+                            textprops={'fontsize': 12, 'weight': 'bold', 'ha': 'center', 'va': 'center'}
                         )
                         ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
                         st.pyplot(fig)
