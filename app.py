@@ -96,7 +96,7 @@ if uploaded_file:
                 if "Pie Chart" in chart_types:
                     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                     fig, ax = plt.subplots()
-                    pie_series = chart_data.set_index(label_column)[value_column]
+                    pie_series = chart_data.set_index(label_column)[value_column].dropna()
                     formatted_labels = [f"{label}\n({format_currency(value)})" for label, value in zip(pie_series.index, pie_series.values)]
                     ax.pie(pie_series, labels=formatted_labels, startangle=90)
                     ax.set_title(f"{value_column} Distribution")
@@ -142,4 +142,5 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
