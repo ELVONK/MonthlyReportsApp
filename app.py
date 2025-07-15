@@ -1,4 +1,4 @@
-# Sample enhanced app.py for monthly report dashboard with visual explanations
+# Enhanced app.py with full sheet integration and explanations
 
 import streamlit as st
 import pandas as pd
@@ -14,42 +14,75 @@ uploaded_file = st.file_uploader("Upload the Excel report", type=[".xlsx"])
 if uploaded_file:
     excel_file = pd.ExcelFile(uploaded_file)
 
-    # Example section: Finance & Accounts - Contractor Payments
-    st.markdown("### 🏗 Contractor Payments")
-    st.markdown("""
-    This chart displays the amounts paid to each road works contractor during the reporting period.
-    It helps assess which contractors received the largest disbursements and may inform future planning.
-    """)
-    contractor_df = pd.read_excel(excel_file, sheet_name="Finance", usecols="A:B")
-    st.bar_chart(contractor_df.set_index("Contractor Name"))
+    # Display available sheet names
+    sheet_names = excel_file.sheet_names
+    st.markdown(f"### 🗂 Available Sheets: {sheet_names}")
 
-    # Example section: Supply Chain - Purchases
-    st.markdown("### 🛍️ Purchases Made")
-    st.markdown("""
-    This section outlines the major purchases made during the month, along with the amounts spent.
-    It supports audit trails and transparent procurement.
-    """)
-    purchase_df = pd.read_excel(excel_file, sheet_name="Supply Chain", usecols="A:B")
-    st.bar_chart(purchase_df.set_index("Description"))
+    # Sheet selector
+    selected_sheet = st.selectbox("Select a sheet to visualize:", sheet_names)
 
-    # Example section: HR - Staff Training
-    st.markdown("### 🎓 Staff Trainings Conducted")
-    st.markdown("""
-    Lists staff members who underwent training, along with the title of each course.
-    Supports professional development tracking.
-    """)
-    training_df = pd.read_excel(excel_file, sheet_name="HR", usecols="A:B")
-    st.dataframe(training_df)
+    if selected_sheet:
+        df = pd.read_excel(excel_file, sheet_name=selected_sheet)
 
-    # Example section: Transport - Fuel Levels
-    st.markdown("### ⛽ Fuel Levels Monitoring")
-    st.markdown("""
-    Shows current fuel levels or consumption trends. Helps detect unusual usage or possible inefficiencies.
-    """)
-    fuel_df = pd.read_excel(excel_file, sheet_name="Transport", usecols="A:B")
-    st.line_chart(fuel_df.set_index("Vehicle"))
+        st.markdown(f"### 📄 Preview of '{selected_sheet}' Sheet")
+        st.dataframe(df)
 
-    # Add more sections similarly as needed
+        sheet_key = selected_sheet.lower()
+
+        if "finance" in sheet_key:
+            st.markdown("### 💰 Finance and Accounts Summary")
+            st.markdown("""
+            Overview of contractor payments, supplier disbursements, and imprest management.
+            """)
+            if "Contractor Name" in df.columns and "Amount Paid" in df.columns:
+                st.bar_chart(df.set_index("Contractor Name")["Amount Paid"])
+
+        elif "supply chain" in sheet_key:
+            st.markdown("### 📦 Supply Chain Activities")
+            st.markdown("""
+            This section outlines purchases made, procurement plan implementation, and store levels.
+            """)
+            if "Description" in df.columns and "Amount" in df.columns:
+                st.bar_chart(df.set_index("Description")["Amount"])
+
+        elif "ict" in sheet_key:
+            st.markdown("### 💻 ICT Department Report")
+            st.markdown("""
+            Displays system downtime instances, equipment maintenance logs, and portal usage.
+            """)
+            st.dataframe(df)
+
+        elif "transport" in sheet_key:
+            st.markdown("### 🚚 Transport Department Report")
+            st.markdown("""
+            Visualizes fuel level monitoring and vehicle maintenance records.
+            """)
+            if "Vehicle" in df.columns and "Fuel Level" in df.columns:
+                st.line_chart(df.set_index("Vehicle")["Fuel Level"])
+
+        elif "survey" in sheet_key:
+            st.markdown("### 🗺️ Survey Department Summary")
+            st.markdown("""
+            Displays corridor mappings, topographical surveys, and disputes resolved.
+            """)
+            st.dataframe(df)
+
+        elif "human resources" in sheet_key:
+            st.markdown("### 👥 Human Resources Activities")
+            st.markdown("""
+            Lists staff training, complaints received, visitors attended to, and leave summaries.
+            """)
+            st.dataframe(df)
+
+        elif "road asset" in sheet_key:
+            st.markdown("### 🛣️ Road Asset & Corridor Management")
+            st.markdown("""
+            Summary of road works progress and ARWP alignment for FY 2025/2026.
+            """)
+            st.dataframe(df)
+
+        else:
+            st.markdown("ℹ️ No specific visualization template for this sheet yet. Showing preview only.")
 
 else:
     st.warning("Please upload a valid Excel report to continue.")
