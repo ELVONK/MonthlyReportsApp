@@ -19,21 +19,13 @@ if uploaded_file:
         excel_file = pd.ExcelFile(uploaded_file)
         sheet_names = excel_file.sheet_names
 
-        st.markdown("### 📜 Select a Sheet to View")
+        st.markdown("### 🗂 Select a Sheet to View")
         selected_sheet = st.selectbox("Choose a sheet", sheet_names)
 
         wb = load_workbook(uploaded_file, data_only=True)
         ws = wb[selected_sheet]
-
-        header_row = next(ws.iter_rows(min_row=1, max_row=1))
-        visible_columns = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-
-        visible_rows = []
-        for row in ws.iter_rows(min_row=2):
-            if not ws.row_dimensions[row[0].row].hidden:
-                visible_rows.append([cell.value for cell in row if not ws.column_dimensions[cell.column_letter].hidden])
-
-        df = pd.DataFrame(visible_rows, columns=[col[1] for col in visible_columns])
+        visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+        df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, usecols=visible_columns)
 
         if 'Department' in df.columns:
             departments = df['Department'].dropna().unique().tolist()
@@ -67,6 +59,7 @@ if uploaded_file:
             label_column = 'index_label'
             chart_data[label_column] = chart_data[label_column]
 
+        # Format percentages as whole numbers or currency with commas for preview
         st.markdown("### 📊 Selected Data Preview")
         preview_data = chart_data.copy()
         if preview_data[value_column].max() <= 1 and preview_data[value_column].min() >= 0:
@@ -111,7 +104,8 @@ if uploaded_file:
                 st.altair_chart(line_chart)
 
             if "Pie Chart" in chart_types:
-                st.markdown(f"#### 🥰 Pie Chart (Donut) for: {value_column}")
+                st.markdown(f"#### 🥧 Pie Chart (Donut) for: {value_column}")
+
                 total = chart_data[value_column].sum()
                 chart_data['percentage'] = chart_data[value_column] / total * 100
                 chart_data['label_display'] = chart_data[label_column] + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
@@ -123,6 +117,7 @@ if uploaded_file:
                 ).properties(width=chart_height, height=chart_height)
 
                 st.altair_chart(pie_chart)
+
         else:
             st.info("ℹ️ No data selected for chart generation.")
 
@@ -136,13 +131,8 @@ if uploaded_file:
         with ZipFile("workbook_export.zip", "w") as zipf:
             for sheet in sheet_names:
                 ws = wb[sheet]
-                header_row = next(ws.iter_rows(min_row=1, max_row=1))
-                visible_columns = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-                visible_rows = [
-                    [cell.value for cell in row if not ws.column_dimensions[cell.column_letter].hidden]
-                    for row in ws.iter_rows(min_row=2) if not ws.row_dimensions[row[0].row].hidden
-                ]
-                df_sheet = pd.DataFrame(visible_rows, columns=[col[1] for col in visible_columns])
+                visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+                df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, usecols=visible_columns)
                 csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
                 zipf.writestr(f"{sheet}.csv", csv_bytes)
 
