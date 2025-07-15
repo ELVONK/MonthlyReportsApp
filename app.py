@@ -119,17 +119,17 @@ if uploaded_file:
                         pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
                         colors = plt.cm.Set3.colors
                         wedges, texts = ax.pie(
-    pie_data[value_column],
-    labels=None,
-    startangle=90,
-    colors=colors,
-    wedgeprops=dict(width=0.4)
-)
-                        for i, p in enumerate(wedges):
-    angle = (p.theta2 + p.theta1) / 2
-    x = 0.5 * np.cos(np.radians(angle))
-    y = 0.5 * np.sin(np.radians(angle))
-    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=9, weight='bold', wrap=True)
+                            pie_data[value_column],
+                            labels=None,
+                            startangle=90,
+                            colors=colors,
+                            wedgeprops=dict(width=0.4)
+                        )
+                                                    for i, p in enumerate(wedges):
+                            angle = (p.theta2 + p.theta1) / 2
+                            x = 0.5 * np.cos(np.radians(angle))
+                            y = 0.5 * np.sin(np.radians(angle))
+                            ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=9, weight='bold', wrap=True)
 
                         ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
                         st.pyplot(fig)
@@ -179,7 +179,6 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
 
 
 
