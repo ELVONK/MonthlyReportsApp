@@ -59,17 +59,8 @@ if uploaded_file:
             label_column = 'index_label'
             chart_data[label_column] = chart_data[label_column]
 
-        def format_currency(val):
-            if abs(val) >= 1_000_000:
-                return f"KES {val/1_000_000:.2f}M"
-            elif abs(val) >= 1_000:
-                return f"KES {val/1_000:.2f}K"
-            return f"KES {val:.2f}"
-
         st.markdown("### 📊 Selected Data Preview")
-        formatted_data = chart_data[[label_column, value_column]].copy()
-        formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
-        st.dataframe(formatted_data, use_container_width=True)
+        st.dataframe(chart_data[[label_column, value_column]], use_container_width=True)
 
         st.markdown("### 🎨 Chart Styling")
         color_scheme = st.selectbox("Choose a color theme:", ["category10", "category20", "tableau10", "accent", "dark2"], index=0)
@@ -84,7 +75,7 @@ if uploaded_file:
         chart_height = st.slider("Chart height", 200, 600, 300)
 
         if not chart_data.empty:
-            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
+            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)")]
 
             if "Bar Chart" in chart_types:
                 st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
@@ -100,7 +91,7 @@ if uploaded_file:
                 st.markdown(f"#### 📈 Line Chart for: {value_column}")
                 line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
                     x=alt.X(f"{label_column}:O"),
-                    y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                    y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
                 ).properties(width=chart_width, height=chart_height)
@@ -144,5 +135,3 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
