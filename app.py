@@ -1,4 +1,4 @@
-# Enhanced app.py with formatted currency tooltips and axis labels
+# Enhanced app.py with proper chart formatting and readable tooltips
 
 import streamlit as st
 import pandas as pd
@@ -82,7 +82,7 @@ if uploaded_file:
             chart_height = st.slider("Chart height", 200, 600, 300)
 
             if not chart_data.empty:
-                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", format="KES,.2s")]
+                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
 
                 if "Bar Chart" in chart_types:
                     st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
@@ -142,5 +142,4 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
 
