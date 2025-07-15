@@ -46,18 +46,12 @@ if uploaded_file:
         non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
         default_label = non_numeric_columns[0] if non_numeric_columns else None
         label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
-        value_column = st.selectbox("Select column for values (y-axis):", df.columns.tolist())
+        value_column = st.selectbox("Select column for values (y-axis):", numeric_columns)
 
         if label_column:
             unique_labels = df[label_column].dropna().unique().tolist()
             selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
             chart_data = df[df[label_column].isin(selected_rows)]
-            if not pd.api.types.is_numeric_dtype(chart_data[value_column]):
-                grouped_counts = chart_data.groupby(label_column)[value_column].count().reset_index(name='Count')
-                total = grouped_counts['Count'].sum()
-                grouped_counts['Count'] = (grouped_counts['Count'] / total * 100).round(2)
-                value_column = 'Count'
-                chart_data = grouped_counts
         else:
             chart_data = df[[value_column]].dropna().reset_index()
             chart_data.rename(columns={'index': 'index_label'}, inplace=True)
@@ -74,9 +68,11 @@ if uploaded_file:
 
         st.markdown("### 📊 Selected Data Preview")
         formatted_data = chart_data[[label_column, value_column]].dropna().copy()
-        if pd.api.types.is_numeric_dtype(chart_data[value_column]):
-            formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
+        formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
         st.dataframe(formatted_data, use_container_width=True)
+
+        st.markdown("### 🎨 Chart Styling")
+        color_scheme = st.selectbox("Choose a color theme:", ["category10", "category20", "tableau10", "accent", "dark2"], index=0)
 
         chart_types = st.multiselect(
             "Select chart types to display:",
@@ -88,16 +84,14 @@ if uploaded_file:
         chart_height = st.slider("Chart height", 200, 600, 300)
 
         if not chart_data.empty:
-            if pd.api.types.is_numeric_dtype(chart_data[value_column]):
-                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
-            else:
-                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:N", title="Value")]
+            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
 
             if "Bar Chart" in chart_types:
                 st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
                 bar_chart = alt.Chart(chart_data).mark_bar().encode(
                     x=alt.X(f"{label_column}:O", sort="-y"),
-                    y=alt.Y(f"{value_column}:{'Q' if pd.api.types.is_numeric_dtype(chart_data[value_column]) else 'N'}"),
+                    y=alt.Y(f"{value_column}:Q"),
+                    color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(bar_chart)
@@ -107,6 +101,7 @@ if uploaded_file:
                 line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
                     x=alt.X(f"{label_column}:O"),
                     y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                    color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(line_chart)
@@ -115,7 +110,7 @@ if uploaded_file:
                 st.markdown(f"#### 🥧 Pie Chart (Donut) for: {value_column}")
                 pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
-                    color=alt.Color(field=label_column, type='nominal'),
+                    color=alt.Color(field=label_column, type='nominal', scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
                 ).properties(width=chart_height, height=chart_height)
                 st.altair_chart(pie_chart)
