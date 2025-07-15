@@ -1,7 +1,5 @@
 # Enhanced app.py with proper chart formatting and readable tooltips
 
-# Enhanced app.py with proper chart formatting and readable tooltips
-
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -51,7 +49,7 @@ if uploaded_file:
             non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
             default_label = non_numeric_columns[0] if non_numeric_columns else None
             label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
-            value_column = st.selectbox("Select numeric column (y-axis / value):", numeric_columns)
+            value_column = st.selectbox("Select column for values (y-axis):", df.columns.tolist())
 
             selected_rows = []
             if label_column:
@@ -73,8 +71,9 @@ if uploaded_file:
                 return f"KES {val:.2f}"
 
             st.markdown("### 📊 Selected Data Preview")
-            formatted_data = chart_data[[label_column, value_column]].copy()
-            formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
+            formatted_data = chart_data[[label_column, value_column]].dropna().copy()
+            if pd.api.types.is_numeric_dtype(chart_data[value_column]):
+                formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
             st.dataframe(formatted_data)
 
             chart_types = st.multiselect(
@@ -87,14 +86,17 @@ if uploaded_file:
             chart_height = st.slider("Chart height", 200, 600, 300)
 
             if not chart_data.empty:
-                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
+                if pd.api.types.is_numeric_dtype(chart_data[value_column]):
+                    tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
+                else:
+                    tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:N", title="Value")]
 
                 if "Bar Chart" in chart_types:
                     if label_column is not None:
                         st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
                         bar_chart = alt.Chart(chart_data).mark_bar().encode(
                             x=alt.X(f"{label_column}:O", sort="-y"),
-                            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                            y=alt.Y(f"{value_column}:{'Q' if pd.api.types.is_numeric_dtype(chart_data[value_column]) else 'N'}"),
                             tooltip=tooltip_vals
                         ).properties(width=chart_width, height=chart_height)
                         st.altair_chart(bar_chart)
