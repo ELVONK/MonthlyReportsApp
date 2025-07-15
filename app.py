@@ -1,5 +1,7 @@
 # Enhanced app.py with proper chart formatting and readable tooltips
 
+# Enhanced app.py with proper chart formatting and readable tooltips
+
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -46,7 +48,9 @@ if uploaded_file:
             )
 
             numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-            label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist())
+            non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
+            default_label = non_numeric_columns[0] if non_numeric_columns else None
+            label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
             value_column = st.selectbox("Select numeric column (y-axis / value):", numeric_columns)
 
             selected_rows = []
@@ -86,38 +90,47 @@ if uploaded_file:
                 tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)", format=".2s")]
 
                 if "Bar Chart" in chart_types:
-                    st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
-                    bar_chart = alt.Chart(chart_data).mark_bar().encode(
-                        x=alt.X(f"{label_column}:O", sort="-y"),
-                        y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-                        tooltip=tooltip_vals
-                    ).properties(width=chart_width, height=chart_height)
-                    st.altair_chart(bar_chart)
+                    if label_column is not None:
+                        st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
+                        bar_chart = alt.Chart(chart_data).mark_bar().encode(
+                            x=alt.X(f"{label_column}:O", sort="-y"),
+                            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                            tooltip=tooltip_vals
+                        ).properties(width=chart_width, height=chart_height)
+                        st.altair_chart(bar_chart)
+                    else:
+                        st.info("ℹ️ Please select a label column to display a bar chart.")
 
                 if "Pie Chart" in chart_types:
-                    st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
-                    fig, ax = plt.subplots()
-                    pie_data = chart_data[[label_column, value_column]].dropna()
-                    pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}\n(KES {row[value_column]:,.2f})", axis=1)
-                    colors = plt.cm.Set3.colors
-                    wedges, texts = ax.pie(
-                        pie_data[value_column],
-                        labels=pie_data['label_text'],
-                        startangle=90,
-                        colors=colors,
-                        textprops={'fontsize': 10}
-                    )
-                    ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
-                    st.pyplot(fig)
+                    if label_column is not None:
+                        st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
+                        fig, ax = plt.subplots()
+                        pie_data = chart_data[[label_column, value_column]].dropna()
+                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}\n(KES {row[value_column]:,.2f})", axis=1)
+                        colors = plt.cm.Set3.colors
+                        wedges, texts = ax.pie(
+                            pie_data[value_column],
+                            labels=pie_data['label_text'],
+                            startangle=90,
+                            colors=colors,
+                            textprops={'fontsize': 10}
+                        )
+                        ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
+                        st.pyplot(fig)
+                    else:
+                        st.info("ℹ️ Please select a label column to display a pie chart.")
 
                 if "Line Chart" in chart_types:
-                    st.markdown(f"#### 📈 Line Chart for: {value_column}")
-                    line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-                        x=alt.X(f"{label_column}:O"),
-                        y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-                        tooltip=tooltip_vals
-                    ).properties(width=chart_width, height=chart_height)
-                    st.altair_chart(line_chart)
+                    if label_column is not None:
+                        st.markdown(f"#### 📈 Line Chart for: {value_column}")
+                        line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+                            x=alt.X(f"{label_column}:O"),
+                            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                            tooltip=tooltip_vals
+                        ).properties(width=chart_width, height=chart_height)
+                        st.altair_chart(line_chart)
+                    else:
+                        st.info("ℹ️ Please select a label column to display a line chart.")
             else:
                 st.info("ℹ️ No data selected for chart generation.")
 
