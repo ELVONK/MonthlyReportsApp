@@ -2,8 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib as mpl
 import altair as alt
 import io
 import numpy as np
@@ -86,7 +84,7 @@ if uploaded_file:
 
             chart_types = st.multiselect(
                 "Select chart types to display:",
-                ["Bar Chart", "Pie Chart", "Line Chart"],
+                ["Bar Chart", "Line Chart"],
                 default=["Bar Chart"]
             )
 
@@ -111,52 +109,17 @@ if uploaded_file:
                     else:
                         st.info("ℹ️ Please select a label column to display a bar chart.")
 
-                if "Pie Chart" in chart_types and label_column is not None:
-    st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
-
-    fig, ax = plt.subplots()
-    pie_data = chart_data[[label_column, value_column]].dropna()
-    pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
-    colors = plt.cm.Set3.colors
-
-    wedges, texts = ax.pie(
-        pie_data[value_column],
-        labels=None,
-        startangle=90,
-        colors=colors,
-        wedgeprops=dict(width=0.4)
-    )
-
-    for i, p in enumerate(wedges):
-        angle = (p.theta2 + p.theta1) / 2
-        x = 0.5 * np.cos(np.radians(angle))
-        y = 0.5 * np.sin(np.radians(angle))
-        ax.annotate(
-            pie_data['label_text'].iloc[i],
-            xy=(x, y),
-            ha='center', va='center',
-            fontsize=7
-        )
-
-    ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
-    st.pyplot(fig)
-else:
-    st.info("ℹ️ Please select a label column to display a pie chart.")
-    st.info("ℹ️ Please select a label column to display a pie chart.")
-                    else:
-                        st.info("ℹ️ Please select a label column to display a pie chart.")
-
                 if "Line Chart" in chart_types:
-                    if label_column is not None:
-                        st.markdown(f"#### 📈 Line Chart for: {value_column}")
-                        line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-                            x=alt.X(f"{label_column}:O"),
-                            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-                            tooltip=tooltip_vals
-                        ).properties(width=chart_width, height=chart_height)
-                        st.altair_chart(line_chart)
-                    else:
-                        st.info("ℹ️ Please select a label column to display a line chart.")
+    if label_column is not None:
+        st.markdown(f"#### 📈 Line Chart for: {value_column}")
+        line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+            x=alt.X(f"{label_column}:O"),
+            y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+            tooltip=tooltip_vals
+        ).properties(width=chart_width, height=chart_height)
+        st.altair_chart(line_chart)
+    else:
+        st.info("ℹ️ Please select a label column to display a line chart.")
             else:
                 st.info("ℹ️ No data selected for chart generation.")
 
@@ -189,6 +152,7 @@ else:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
 
 
