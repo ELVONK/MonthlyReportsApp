@@ -179,5 +179,3 @@ for i, p in enumerate(wedges):
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
