@@ -139,7 +139,8 @@ if uploaded_file:
 
     ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
     st.pyplot(fig)
-elif "Pie Chart" in chart_types:
+else:
+    st.info("ℹ️ Please select a label column to display a pie chart.")
     st.info("ℹ️ Please select a label column to display a pie chart.")
                     else:
                         st.info("ℹ️ Please select a label column to display a pie chart.")
@@ -187,6 +188,7 @@ elif "Pie Chart" in chart_types:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
 
 
