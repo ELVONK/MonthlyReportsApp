@@ -62,10 +62,10 @@ if uploaded_file:
 
             def format_currency(val):
                 if abs(val) >= 1_000_000:
-                    return f"{val/1_000_000:.2f}M"
+                    return f"KES {val/1_000_000:.2f}M"
                 elif abs(val) >= 1_000:
-                    return f"{val/1_000:.2f}K"
-                return f"{val:.2f}"
+                    return f"KES {val/1_000:.2f}K"
+                return f"KES {val:.2f}"
 
             st.markdown("### 📊 Selected Data Preview")
             formatted_data = chart_data[[label_column, value_column]].copy()
@@ -82,17 +82,14 @@ if uploaded_file:
             chart_height = st.slider("Chart height", 200, 600, 300)
 
             if not chart_data.empty:
-                tooltip_vals = [label_column, value_column]
-
-                def format_axis_label(val):
-                    return format_currency(val)
+                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", format="KES,.2s")]
 
                 if "Bar Chart" in chart_types:
                     st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
                     bar_chart = alt.Chart(chart_data).mark_bar().encode(
                         x=alt.X(f"{label_column}:O", sort="-y"),
                         y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-                        tooltip=[label_column, alt.Tooltip(f"{value_column}:Q", format=".2s")]
+                        tooltip=tooltip_vals
                     ).properties(width=chart_width, height=chart_height)
                     st.altair_chart(bar_chart)
 
@@ -110,7 +107,7 @@ if uploaded_file:
                     line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
                         x=alt.X(f"{label_column}:O"),
                         y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
-                        tooltip=[label_column, alt.Tooltip(f"{value_column}:Q", format=".2s")]
+                        tooltip=tooltip_vals
                     ).properties(width=chart_width, height=chart_height)
                     st.altair_chart(line_chart)
             else:
@@ -145,4 +142,5 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
