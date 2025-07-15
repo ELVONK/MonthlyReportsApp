@@ -125,6 +125,11 @@ if uploaded_file:
     colors=colors,
     wedgeprops=dict(width=0.4)
 )
+for i, p in enumerate(wedges):
+    angle = (p.theta2 + p.theta1) / 2
+    x = 0.5 * np.cos(np.radians(angle))
+    y = 0.5 * np.sin(np.radians(angle))
+    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=7)
                                                     for i, p in enumerate(wedges):
     angle = (p.theta2 + p.theta1) / 2
     x = 0.5 * np.cos(np.radians(angle))
