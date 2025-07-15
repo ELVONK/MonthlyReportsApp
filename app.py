@@ -60,6 +60,7 @@ if uploaded_file:
             unique_labels = df[label_column].dropna().tolist()
             chart_data = df[df[label_column].isin(unique_labels)][[label_column, value_column]].dropna()
             chart_data[label_column] = pd.Categorical(chart_data[label_column], categories=unique_labels, ordered=True)
+            chart_data = chart_data.sort_values(label_column)
         else:
             chart_data = df[[value_column]].dropna().reset_index()
             chart_data.rename(columns={'index': 'index_label'}, inplace=True)
@@ -114,7 +115,7 @@ if uploaded_file:
                 st.markdown(f"#### 🥰 Pie Chart (Donut) for: {value_column}")
                 total = chart_data[value_column].sum()
                 chart_data['percentage'] = chart_data[value_column] / total * 100
-                chart_data['label_display'] = chart_data[label_column] + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
+                chart_data['label_display'] = chart_data[label_column].astype(str) + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
 
                 pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
