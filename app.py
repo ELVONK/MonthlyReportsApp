@@ -3,6 +3,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 import altair as alt
 import io
 from zipfile import ZipFile
@@ -96,10 +97,17 @@ if uploaded_file:
                 if "Pie Chart" in chart_types:
                     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                     fig, ax = plt.subplots()
-                    pie_series = chart_data.set_index(label_column)[value_column].dropna()
-                    formatted_labels = [f"{label}\n({format_currency(value)})" for label, value in zip(pie_series.index, pie_series.values)]
-                    ax.pie(pie_series, labels=formatted_labels, startangle=90)
-                    ax.set_title(f"{value_column} Distribution")
+                    pie_data = chart_data[[label_column, value_column]].dropna()
+                    pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}\n(KES {row[value_column]:,.2f})", axis=1)
+                    colors = plt.cm.Set3.colors
+                    wedges, texts = ax.pie(
+                        pie_data[value_column],
+                        labels=pie_data['label_text'],
+                        startangle=90,
+                        colors=colors,
+                        textprops={'fontsize': 10}
+                    )
+                    ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
                     st.pyplot(fig)
 
                 if "Line Chart" in chart_types:
