@@ -45,13 +45,13 @@ if uploaded_file:
         numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
         non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
         default_label = non_numeric_columns[0] if non_numeric_columns else None
-        label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist(), index=(df.columns.tolist().index(default_label) + 1) if default_label else 0)
+        label_column = st.selectbox("Select label column (x-axis / category):", [None] + non_numeric_columns, index=(non_numeric_columns.index(default_label) + 1) if default_label else 0)
         value_column = st.selectbox("Select column for values (y-axis):", numeric_columns)
 
         if label_column:
             unique_labels = df[label_column].dropna().unique().tolist()
             selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
-            chart_data = df[df[label_column].isin(selected_rows)]
+            chart_data = df[df[label_column].isin(selected_rows)][[label_column, value_column]].dropna()
         else:
             chart_data = df[[value_column]].dropna().reset_index()
             chart_data.rename(columns={'index': 'index_label'}, inplace=True)
@@ -67,7 +67,7 @@ if uploaded_file:
             return f"KES {val:.2f}"
 
         st.markdown("### 📊 Selected Data Preview")
-        formatted_data = chart_data[[label_column, value_column]].dropna().copy()
+        formatted_data = chart_data[[label_column, value_column]].copy()
         formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
         st.dataframe(formatted_data, use_container_width=True)
 
