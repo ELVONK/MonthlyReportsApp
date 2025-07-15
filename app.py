@@ -24,7 +24,10 @@ if uploaded_file:
 
         try:
             st.markdown(f"## 📄 {selected_sheet}")
-            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
+            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, engine='openpyxl')
+
+            # Remove columns that are completely hidden in Excel (empty or unnamed)
+            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
             # Filtering for specific columns if present
             if 'Department' in df.columns:
@@ -94,7 +97,8 @@ if uploaded_file:
             # Export entire workbook data as zip of CSVs
             with ZipFile("workbook_export.zip", "w") as zipf:
                 for sheet in sheet_names:
-                    df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet)
+                    df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, engine='openpyxl')
+                    df_sheet = df_sheet.loc[:, ~df_sheet.columns.str.contains('^Unnamed')]
                     csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
                     zipf.writestr(f"{sheet}.csv", csv_bytes)
             with open("workbook_export.zip", "rb") as f:
