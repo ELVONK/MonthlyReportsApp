@@ -1,4 +1,4 @@
-# Enhanced app.py with merged sheet integration and detailed visual explanations
+# Enhanced app.py with individual sheet visualizations, filtering, pie charts, and department-specific templates
 
 import streamlit as st
 import pandas as pd
@@ -17,49 +17,54 @@ if uploaded_file:
         excel_file = pd.ExcelFile(uploaded_file)
         sheet_names = excel_file.sheet_names
 
-        st.markdown(f"### 🗂 Merging Sheets: {sheet_names}")
+        st.markdown(f"### 🗂 Sheets Found: {sheet_names}")
 
-        # Read all sheets into a single dataframe with a column identifying the sheet name
-        merged_data = []
         for sheet in sheet_names:
             try:
+                st.markdown(f"## 📄 {sheet}")
                 df = pd.read_excel(uploaded_file, sheet_name=sheet)
-                df["Department"] = sheet
-                merged_data.append(df)
+
+                # Filtering for specific columns if present
+                if 'Department' in df.columns:
+                    departments = df['Department'].dropna().unique().tolist()
+                    selected_dept = st.selectbox(f"Filter by Department in '{sheet}'", departments)
+                    df = df[df['Department'] == selected_dept]
+
+                st.dataframe(df)
+
+                numeric_columns = df.select_dtypes(include=['number']).columns
+
+                if not numeric_columns.empty:
+                    for col in numeric_columns:
+                        chart_data = df[[col]].dropna()
+                        if not chart_data.empty:
+                            st.markdown(f"#### 🔢 Bar Chart for: {col}")
+                            chart = alt.Chart(chart_data.reset_index()).mark_bar().encode(
+                                x=alt.X("index:O", title="Record Index"),
+                                y=alt.Y(f"{col}:Q", title=col),
+                                tooltip=[f"{col}:Q"]
+                            ).properties(width=700, height=300)
+                            st.altair_chart(chart)
+
+                            st.markdown(f"#### 🥧 Pie Chart for: {col}")
+                            fig, ax = plt.subplots()
+                            chart_data[col].value_counts().plot.pie(autopct='%1.1f%%', ax=ax)
+                            ax.set_ylabel('')
+                            ax.set_title(col)
+                            st.pyplot(fig)
+                else:
+                    st.info("ℹ️ No numeric columns found for visualization in this sheet.")
+
+                # Example: custom message for known department sheets
+                if "finance" in sheet.lower():
+                    st.success("This sheet contains finance-related data including payments and budgets.")
+                elif "hr" in sheet.lower():
+                    st.success("This sheet contains HR metrics like training and complaints.")
+                elif "ict" in sheet.lower():
+                    st.success("This sheet captures ICT infrastructure and support metrics.")
+
             except Exception as e:
-                st.warning(f"⚠️ Could not read sheet '{sheet}': {e}")
-
-        if merged_data:
-            full_df = pd.concat(merged_data, ignore_index=True)
-
-            st.markdown("### 📄 Merged Departmental Data")
-            st.dataframe(full_df)
-
-            # Visualization: Records Per Department
-            if "Department" in full_df.columns:
-                st.markdown("### 📈 Records Per Department")
-                count_df = full_df["Department"].value_counts().reset_index()
-                count_df.columns = ["Department", "Record Count"]
-                chart = alt.Chart(count_df).mark_bar().encode(
-                    x=alt.X("Department", sort="-y"),
-                    y="Record Count",
-                    tooltip=["Department", "Record Count"]
-                ).properties(width=700, height=400)
-                st.altair_chart(chart)
-
-            # Visualization: Total Amounts by Description
-            if "Amount" in full_df.columns and "Description" in full_df.columns:
-                st.markdown("### 💵 Total Amounts by Description")
-                amount_summary = full_df.groupby("Description")["Amount"].sum().reset_index()
-                chart = alt.Chart(amount_summary).mark_bar().encode(
-                    x=alt.X("Description", sort="-y"),
-                    y="Amount",
-                    tooltip=["Description", "Amount"]
-                ).properties(width=700, height=400)
-                st.altair_chart(chart)
-
-        else:
-            st.warning("No valid sheets could be merged from the uploaded file.")
+                st.warning(f"⚠️ Could not process sheet '{sheet}': {e}")
 
     except Exception as e:
         st.error(f"❌ Failed to read Excel file: {e}")
