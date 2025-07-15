@@ -97,8 +97,8 @@ if uploaded_file:
                     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                     fig, ax = plt.subplots()
                     pie_series = chart_data.set_index(label_column)[value_column]
-                    pie_series.plot.pie(autopct='%1.1f%%', ax=ax, startangle=90)
-                    ax.set_ylabel('')
+                    formatted_labels = [f"{label}\n({format_currency(value)})" for label, value in zip(pie_series.index, pie_series.values)]
+                    ax.pie(pie_series, labels=formatted_labels, startangle=90)
                     ax.set_title(f"{value_column} Distribution")
                     st.pyplot(fig)
 
