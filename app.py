@@ -56,6 +56,13 @@ if uploaded_file:
                 unique_labels = df[label_column].dropna().unique().tolist()
                 selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
                 chart_data = df[df[label_column].isin(selected_rows)]
+                if not pd.api.types.is_numeric_dtype(chart_data[value_column]):
+                    grouped_counts = chart_data.groupby(label_column)[value_column].count().reset_index(name='Count')
+                    total = grouped_counts['Count'].sum()
+                    grouped_counts['Count'] = (grouped_counts['Count'] / total * 100).round(2)
+                    value_column = 'Count'
+                    chart_data = grouped_counts
+                    value_column = 'Count'
             else:
                 chart_data = df[[value_column]].dropna().reset_index()
                 chart_data.rename(columns={'index': 'index_label'}, inplace=True)
@@ -108,7 +115,8 @@ if uploaded_file:
                         st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                         fig, ax = plt.subplots()
                         pie_data = chart_data[[label_column, value_column]].dropna()
-                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}\n(KES {row[value_column]:,.2f})", axis=1)
+                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]}
+({row[value_column]}%)", axis=1)
                         colors = plt.cm.Set3.colors
                         wedges, texts = ax.pie(
                             pie_data[value_column],
@@ -165,5 +173,6 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
 
