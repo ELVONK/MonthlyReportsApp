@@ -10,7 +10,9 @@ from openpyxl import load_workbook
 
 st.set_page_config(page_title="Monthly Report Dashboard", layout="wide")
 
-st.title("📊 Monthly Departmental Report Dashboard")
+st.markdown("""
+    <h1 style='text-align: center; color: #1f77b4;'>📊 Monthly Departmental Report Dashboard</h1>
+""", unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("Upload the Excel report", type=[".xlsx"])
 
@@ -34,7 +36,7 @@ if uploaded_file:
                 selected_dept = st.selectbox(f"Filter by Department in '{selected_sheet}'", departments)
                 df = df[df['Department'] == selected_dept]
 
-            st.dataframe(df)
+            st.dataframe(df, use_container_width=True)
 
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
@@ -80,7 +82,7 @@ if uploaded_file:
             formatted_data = chart_data[[label_column, value_column]].dropna().copy()
             if pd.api.types.is_numeric_dtype(chart_data[value_column]):
                 formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
-            st.dataframe(formatted_data)
+            st.dataframe(formatted_data, use_container_width=True)
 
             chart_types = st.multiselect(
                 "Select chart types to display:",
@@ -120,6 +122,8 @@ if uploaded_file:
         st.altair_chart(line_chart)
     else:
         st.info("ℹ️ Please select a label column to display a line chart.")
+    else:
+        st.info("ℹ️ Please select a label column to display a line chart.")
             else:
                 st.info("ℹ️ No data selected for chart generation.")
 
@@ -152,11 +156,6 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
-
-
-
 
 
 
