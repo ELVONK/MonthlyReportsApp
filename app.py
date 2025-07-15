@@ -1,4 +1,4 @@
-# Enhanced app.py with column and row selection for charts, plus full customization
+# Enhanced app.py with formatted currency tooltips and axis labels
 
 import streamlit as st
 import pandas as pd
@@ -26,7 +26,7 @@ if uploaded_file:
             st.markdown(f"## 📄 {selected_sheet}")
             wb = load_workbook(uploaded_file, data_only=True)
             ws = wb[selected_sheet]
-            visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if not ws.column_dimensions[cell.column_letter].hidden]
+            visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
             df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, usecols=visible_columns)
 
             if 'Department' in df.columns:
@@ -60,8 +60,17 @@ if uploaded_file:
                 label_column = 'index_label'
                 chart_data[label_column] = chart_data[label_column]
 
+            def format_currency(val):
+                if abs(val) >= 1_000_000:
+                    return f"{val/1_000_000:.2f}M"
+                elif abs(val) >= 1_000:
+                    return f"{val/1_000:.2f}K"
+                return f"{val:.2f}"
+
             st.markdown("### 📊 Selected Data Preview")
-            st.dataframe(chart_data[[label_column, value_column]])
+            formatted_data = chart_data[[label_column, value_column]].copy()
+            formatted_data[value_column] = formatted_data[value_column].apply(format_currency)
+            st.dataframe(formatted_data)
 
             chart_types = st.multiselect(
                 "Select chart types to display:",
@@ -75,19 +84,23 @@ if uploaded_file:
             if not chart_data.empty:
                 tooltip_vals = [label_column, value_column]
 
+                def format_axis_label(val):
+                    return format_currency(val)
+
                 if "Bar Chart" in chart_types:
                     st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
                     bar_chart = alt.Chart(chart_data).mark_bar().encode(
                         x=alt.X(f"{label_column}:O", sort="-y"),
-                        y=alt.Y(f"{value_column}:Q"),
-                        tooltip=tooltip_vals
+                        y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                        tooltip=[label_column, alt.Tooltip(f"{value_column}:Q", format=".2s")]
                     ).properties(width=chart_width, height=chart_height)
                     st.altair_chart(bar_chart)
 
                 if "Pie Chart" in chart_types:
                     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                     fig, ax = plt.subplots()
-                    chart_data.set_index(label_column)[value_column].plot.pie(autopct='%1.1f%%', ax=ax)
+                    pie_series = chart_data.set_index(label_column)[value_column]
+                    pie_series.plot.pie(autopct='%1.1f%%', ax=ax, startangle=90)
                     ax.set_ylabel('')
                     ax.set_title(f"{value_column} Distribution")
                     st.pyplot(fig)
@@ -96,8 +109,8 @@ if uploaded_file:
                     st.markdown(f"#### 📈 Line Chart for: {value_column}")
                     line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
                         x=alt.X(f"{label_column}:O"),
-                        y=alt.Y(f"{value_column}:Q"),
-                        tooltip=tooltip_vals
+                        y=alt.Y(f"{value_column}:Q", axis=alt.Axis(format="~s")),
+                        tooltip=[label_column, alt.Tooltip(f"{value_column}:Q", format=".2s")]
                     ).properties(width=chart_width, height=chart_height)
                     st.altair_chart(line_chart)
             else:
@@ -113,7 +126,7 @@ if uploaded_file:
             with ZipFile("workbook_export.zip", "w") as zipf:
                 for sheet in sheet_names:
                     ws = wb[sheet]
-                    visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if not ws.column_dimensions[cell.column_letter].hidden]
+                    visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
                     df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, usecols=visible_columns)
                     csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
                     zipf.writestr(f"{sheet}.csv", csv_bytes)
@@ -132,6 +145,4 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
 
