@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 st.set_page_config(page_title="Monthly Report Dashboard", layout="wide")
 
 st.markdown("""
-    <h1 style='text-align: center; color: #1f77b4;'>📊 Departmental Reports Dashboard</h1>
+    <h1 style='text-align: center; color: #1f77b4;'>📊 Monthly Departmental Report Dashboard</h1>
 """, unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("Upload the Excel report", type=[".xlsx"])
@@ -49,9 +49,9 @@ if uploaded_file:
         value_column = st.selectbox("Select column for values (y-axis):", numeric_columns)
 
         if label_column:
-            unique_labels = df[label_column].dropna().unique().tolist()
-            selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
-            chart_data = df[df[label_column].isin(selected_rows)][[label_column, value_column]].dropna()
+            unique_labels = df[label_column].dropna().tolist()
+            chart_data = df[df[label_column].isin(unique_labels)][[label_column, value_column]].dropna()
+            chart_data[label_column] = pd.Categorical(chart_data[label_column], categories=unique_labels, ordered=True)
         else:
             chart_data = df[[value_column]].dropna().reset_index()
             chart_data.rename(columns={'index': 'index_label'}, inplace=True)
@@ -86,7 +86,7 @@ if uploaded_file:
             if "Bar Chart" in chart_types:
                 st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
                 bar_chart = alt.Chart(chart_data).mark_bar().encode(
-                    x=alt.X(f"{label_column}:O", sort="-y"),
+                    x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
@@ -96,7 +96,7 @@ if uploaded_file:
             if "Line Chart" in chart_types:
                 st.markdown(f"#### 📈 Line Chart for: {value_column}")
                 line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-                    x=alt.X(f"{label_column}:O"),
+                    x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
                     tooltip=tooltip_vals
