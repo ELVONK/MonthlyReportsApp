@@ -111,33 +111,36 @@ if uploaded_file:
                     else:
                         st.info("ℹ️ Please select a label column to display a bar chart.")
 
-                if "Pie Chart" in chart_types:
-                    if label_column is not None:
-                        st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
-                        fig, ax = plt.subplots()
-                        pie_data = chart_data[[label_column, value_column]].dropna()
-                        pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
-                        colors = plt.cm.Set3.colors
-                        wedges, texts = ax.pie(
-    pie_data[value_column],
-    labels=None,
-    startangle=90,
-    colors=colors,
-    wedgeprops=dict(width=0.4)
-)
-for i, p in enumerate(wedges):
-    angle = (p.theta2 + p.theta1) / 2
-    x = 0.5 * np.cos(np.radians(angle))
-    y = 0.5 * np.sin(np.radians(angle))
-    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=7)
-                                                    for i, p in enumerate(wedges):
-    angle = (p.theta2 + p.theta1) / 2
-    x = 0.5 * np.cos(np.radians(angle))
-    y = 0.5 * np.sin(np.radians(angle))
-    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=7)
+                if "Pie Chart" in chart_types and label_column is not None:
+    st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
+    fig, ax = plt.subplots()
+    pie_data = chart_data[[label_column, value_column]].dropna()
+    pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
+    colors = plt.cm.Set3.colors
 
-                        ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
-                        st.pyplot(fig)
+    wedges, texts = ax.pie(
+        pie_data[value_column],
+        labels=None,
+        startangle=90,
+        colors=colors,
+        wedgeprops=dict(width=0.4)
+    )
+
+    for i, p in enumerate(wedges):
+        angle = (p.theta2 + p.theta1) / 2
+        x = 0.5 * np.cos(np.radians(angle))
+        y = 0.5 * np.sin(np.radians(angle))
+        ax.text(
+            x, y,
+            pie_data['label_text'].iloc[i],
+            ha='center', va='center',
+            fontsize=7
+        )
+
+    ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
+    st.pyplot(fig)
+elif "Pie Chart" in chart_types:
+    st.info("ℹ️ Please select a label column to display a pie chart.")
                     else:
                         st.info("ℹ️ Please select a label column to display a pie chart.")
 
@@ -184,9 +187,6 @@ for i, p in enumerate(wedges):
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
-
 
 
 
