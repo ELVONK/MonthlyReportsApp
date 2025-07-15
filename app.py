@@ -1,4 +1,4 @@
-# Enhanced app.py with chart selection controls and formatting customization
+# Enhanced app.py with column and row selection for charts, plus full customization
 
 import streamlit as st
 import pandas as pd
@@ -44,62 +44,53 @@ if uploaded_file:
                 mime="text/csv"
             )
 
-            numeric_columns = df.select_dtypes(include=['number']).columns
-            label_column = None
-            for col in ['Description', 'Name', 'Item', 'Team', 'Supplier', 'Contractor Name']:
-                if col in df.columns:
-                    label_column = col
-                    break
+            numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+            label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist())
+            value_column = st.selectbox("Select numeric column (y-axis / value):", numeric_columns)
+            selected_rows = st.multiselect("Select rows to include in the chart (based on label):", df[label_column].dropna().unique().tolist() if label_column else df.index.tolist())
+
+            chart_data = df[df[label_column].isin(selected_rows)] if label_column else df.loc[selected_rows]
 
             chart_types = st.multiselect(
                 "Select chart types to display:",
                 ["Bar Chart", "Pie Chart", "Line Chart"],
-                default=["Bar Chart", "Pie Chart"]
+                default=["Bar Chart"]
             )
 
             chart_width = st.slider("Chart width", 400, 1000, 700)
             chart_height = st.slider("Chart height", 200, 600, 300)
 
-            if not numeric_columns.empty:
-                for col in numeric_columns:
-                    chart_data = df[[label_column, col]].dropna() if label_column else df[[col]].dropna()
-                    if not chart_data.empty:
-                        if label_column:
-                            x_axis = label_column
-                            tooltip_vals = [label_column, col]
-                        else:
-                            chart_data = chart_data.reset_index()
-                            x_axis = 'index'
-                            tooltip_vals = [col]
+            if not chart_data.empty:
+                x_axis = label_column if label_column else 'index'
+                tooltip_vals = [label_column, value_column] if label_column else [value_column]
 
-                        if "Bar Chart" in chart_types:
-                            st.markdown(f"#### 🔢 Bar Chart for: {col}")
-                            bar_chart = alt.Chart(chart_data).mark_bar().encode(
-                                x=alt.X(f"{x_axis}:O", sort="-y"),
-                                y=alt.Y(f"{col}:Q"),
-                                tooltip=tooltip_vals
-                            ).properties(width=chart_width, height=chart_height)
-                            st.altair_chart(bar_chart)
+                if "Bar Chart" in chart_types:
+                    st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
+                    bar_chart = alt.Chart(chart_data.reset_index()).mark_bar().encode(
+                        x=alt.X(f"{x_axis}:O", sort="-y"),
+                        y=alt.Y(f"{value_column}:Q"),
+                        tooltip=tooltip_vals
+                    ).properties(width=chart_width, height=chart_height)
+                    st.altair_chart(bar_chart)
 
-                        if "Pie Chart" in chart_types:
-                            st.markdown(f"#### 🥧 Pie Chart for: {col}")
-                            fig, ax = plt.subplots()
-                            chart_data.groupby(x_axis)[col].sum().plot.pie(autopct='%1.1f%%', ax=ax)
-                            ax.set_ylabel('')
-                            ax.set_title(f"{col} Distribution")
-                            st.pyplot(fig)
+                if "Pie Chart" in chart_types:
+                    st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
+                    fig, ax = plt.subplots()
+                    chart_data.set_index(x_axis)[value_column].plot.pie(autopct='%1.1f%%', ax=ax)
+                    ax.set_ylabel('')
+                    ax.set_title(f"{value_column} Distribution")
+                    st.pyplot(fig)
 
-                        if "Line Chart" in chart_types:
-                            st.markdown(f"#### 📈 Line Chart for: {col}")
-                            line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-                                x=alt.X(f"{x_axis}:O"),
-                                y=alt.Y(f"{col}:Q"),
-                                tooltip=tooltip_vals
-                            ).properties(width=chart_width, height=chart_height)
-                            st.altair_chart(line_chart)
-
+                if "Line Chart" in chart_types:
+                    st.markdown(f"#### 📈 Line Chart for: {value_column}")
+                    line_chart = alt.Chart(chart_data.reset_index()).mark_line(point=True).encode(
+                        x=alt.X(f"{x_axis}:O"),
+                        y=alt.Y(f"{value_column}:Q"),
+                        tooltip=tooltip_vals
+                    ).properties(width=chart_width, height=chart_height)
+                    st.altair_chart(line_chart)
             else:
-                st.info("ℹ️ No numeric columns found for visualization in this sheet.")
+                st.info("ℹ️ No data selected for chart generation.")
 
             if "finance" in selected_sheet.lower():
                 st.success("This sheet contains finance-related data including payments and budgets.")
@@ -130,6 +121,5 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
 
 
