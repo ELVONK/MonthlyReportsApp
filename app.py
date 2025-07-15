@@ -59,8 +59,14 @@ if uploaded_file:
             label_column = 'index_label'
             chart_data[label_column] = chart_data[label_column]
 
+        # Format percentages as whole numbers or currency with commas for preview
         st.markdown("### 📊 Selected Data Preview")
-        st.dataframe(chart_data[[label_column, value_column]], use_container_width=True)
+        preview_data = chart_data.copy()
+        if preview_data[value_column].max() <= 1 and preview_data[value_column].min() >= 0:
+            preview_data[value_column] = (preview_data[value_column] * 100).round(0).astype(int).astype(str) + '%'
+        else:
+            preview_data[value_column] = preview_data[value_column].apply(lambda x: f"{x:,.0f}")
+        st.dataframe(preview_data[[label_column, value_column]], use_container_width=True)
 
         st.markdown("### 🎨 Chart Styling")
         color_scheme = st.selectbox("Choose a color theme:", ["category10", "category20", "tableau10", "accent", "dark2"], index=0)
@@ -75,7 +81,7 @@ if uploaded_file:
         chart_height = st.slider("Chart height", 200, 600, 300)
 
         if not chart_data.empty:
-            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value (KES)")]
+            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=",.0f")]
 
             if "Bar Chart" in chart_types:
                 st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
@@ -99,12 +105,19 @@ if uploaded_file:
 
             if "Pie Chart" in chart_types:
                 st.markdown(f"#### 🥧 Pie Chart (Donut) for: {value_column}")
+
+                total = chart_data[value_column].sum()
+                chart_data['percentage'] = chart_data[value_column] / total * 100
+                chart_data['label_display'] = chart_data[label_column] + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
+
                 pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
-                    color=alt.Color(field=label_column, type='nominal', scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=tooltip_vals
+                    color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme)),
+                    tooltip=[label_column, alt.Tooltip('percentage:Q', title='Percentage', format='.0f')]
                 ).properties(width=chart_height, height=chart_height)
+
                 st.altair_chart(pie_chart)
+
         else:
             st.info("ℹ️ No data selected for chart generation.")
 
