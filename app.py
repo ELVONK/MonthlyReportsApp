@@ -84,7 +84,7 @@ if uploaded_file:
     default=["Bar Chart"]
 ),
            # default=["Bar Chart"]
-        )
+       # )
 
         chart_width = st.slider("Chart width", 400, 1000, 700)
         chart_height = st.slider("Chart height", 200, 600, 300)
