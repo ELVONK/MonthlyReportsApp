@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import matplotlib as mpl
 import altair as alt
 import io
+import numpy as np
 from zipfile import ZipFile
 from openpyxl import load_workbook
 
@@ -124,6 +125,11 @@ if uploaded_file:
     colors=colors,
     wedgeprops=dict(width=0.4)
 )
+for i, p in enumerate(wedges):
+    angle = (p.theta2 + p.theta1) / 2
+    x = 0.7 * np.cos(np.radians(angle))
+    y = 0.7 * np.sin(np.radians(angle))
+    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=10, weight='bold')
 for i, p in enumerate(ax.patches):
     x, y = p.get_center()
     angle = (p.theta2 + p.theta1) / 2
@@ -178,4 +184,5 @@ for i, p in enumerate(ax.patches):
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
