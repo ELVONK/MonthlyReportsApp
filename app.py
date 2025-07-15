@@ -47,9 +47,21 @@ if uploaded_file:
             numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
             label_column = st.selectbox("Select label column (x-axis / category):", [None] + df.columns.tolist())
             value_column = st.selectbox("Select numeric column (y-axis / value):", numeric_columns)
-            selected_rows = st.multiselect("Select rows to include in the chart (based on label):", df[label_column].dropna().unique().tolist() if label_column else df.index.tolist())
 
-            chart_data = df[df[label_column].isin(selected_rows)] if label_column else df.loc[selected_rows]
+            selected_rows = []
+            if label_column:
+                unique_labels = df[label_column].dropna().unique().tolist()
+                selected_rows = st.multiselect("Select rows to include in the chart (based on label):", unique_labels, default=unique_labels)
+                chart_data = df[df[label_column].isin(selected_rows)]
+            else:
+                chart_data = df[[value_column]].dropna().reset_index()
+                chart_data.rename(columns={'index': 'index_label'}, inplace=True)
+                chart_data['index_label'] = chart_data['index_label'].astype(str)
+                label_column = 'index_label'
+                chart_data[label_column] = chart_data[label_column]
+
+            st.markdown("### 📊 Selected Data Preview")
+            st.dataframe(chart_data[[label_column, value_column]])
 
             chart_types = st.multiselect(
                 "Select chart types to display:",
@@ -61,13 +73,12 @@ if uploaded_file:
             chart_height = st.slider("Chart height", 200, 600, 300)
 
             if not chart_data.empty:
-                x_axis = label_column if label_column else 'index'
-                tooltip_vals = [label_column, value_column] if label_column else [value_column]
+                tooltip_vals = [label_column, value_column]
 
                 if "Bar Chart" in chart_types:
                     st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
-                    bar_chart = alt.Chart(chart_data.reset_index()).mark_bar().encode(
-                        x=alt.X(f"{x_axis}:O", sort="-y"),
+                    bar_chart = alt.Chart(chart_data).mark_bar().encode(
+                        x=alt.X(f"{label_column}:O", sort="-y"),
                         y=alt.Y(f"{value_column}:Q"),
                         tooltip=tooltip_vals
                     ).properties(width=chart_width, height=chart_height)
@@ -76,15 +87,15 @@ if uploaded_file:
                 if "Pie Chart" in chart_types:
                     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
                     fig, ax = plt.subplots()
-                    chart_data.set_index(x_axis)[value_column].plot.pie(autopct='%1.1f%%', ax=ax)
+                    chart_data.set_index(label_column)[value_column].plot.pie(autopct='%1.1f%%', ax=ax)
                     ax.set_ylabel('')
                     ax.set_title(f"{value_column} Distribution")
                     st.pyplot(fig)
 
                 if "Line Chart" in chart_types:
                     st.markdown(f"#### 📈 Line Chart for: {value_column}")
-                    line_chart = alt.Chart(chart_data.reset_index()).mark_line(point=True).encode(
-                        x=alt.X(f"{x_axis}:O"),
+                    line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+                        x=alt.X(f"{label_column}:O"),
                         y=alt.Y(f"{value_column}:Q"),
                         tooltip=tooltip_vals
                     ).properties(width=chart_width, height=chart_height)
@@ -121,5 +132,6 @@ if uploaded_file:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
+
 
 
