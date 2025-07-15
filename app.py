@@ -23,69 +23,72 @@ if uploaded_file:
 
         if selected_sheet:
             try:
-                df = pd.read_excel(excel_file, sheet_name=selected_sheet)
+                if selected_sheet in sheet_names:
+                    df = pd.read_excel(uploaded_file, sheet_name=selected_sheet)
 
-                st.markdown(f"### 📄 Preview of '{selected_sheet}' Sheet")
-                st.dataframe(df)
-
-                sheet_key = selected_sheet.lower()
-
-                if "finance" in sheet_key:
-                    st.markdown("### 💰 Finance and Accounts Summary")
-                    st.markdown("""
-                    Overview of contractor payments, supplier disbursements, and imprest management.
-                    """)
-                    if "Contractor Name" in df.columns and "Amount Paid" in df.columns:
-                        st.bar_chart(df.set_index("Contractor Name")["Amount Paid"])
-
-                elif "supply chain" in sheet_key:
-                    st.markdown("### 📦 Supply Chain Activities")
-                    st.markdown("""
-                    This section outlines purchases made, procurement plan implementation, and store levels.
-                    """)
-                    if "Description" in df.columns and "Amount" in df.columns:
-                        st.bar_chart(df.set_index("Description")["Amount"])
-
-                elif "ict" in sheet_key:
-                    st.markdown("### 💻 ICT Department Report")
-                    st.markdown("""
-                    Displays system downtime instances, equipment maintenance logs, and portal usage.
-                    """)
+                    st.markdown(f"### 📄 Preview of '{selected_sheet}' Sheet")
                     st.dataframe(df)
 
-                elif "transport" in sheet_key:
-                    st.markdown("### 🚚 Transport Department Report")
-                    st.markdown("""
-                    Visualizes fuel level monitoring and vehicle maintenance records.
-                    """)
-                    if "Vehicle" in df.columns and "Fuel Level" in df.columns:
-                        st.line_chart(df.set_index("Vehicle")["Fuel Level"])
+                    sheet_key = selected_sheet.lower()
 
-                elif "survey" in sheet_key:
-                    st.markdown("### 🗺️ Survey Department Summary")
-                    st.markdown("""
-                    Displays corridor mappings, topographical surveys, and disputes resolved.
-                    """)
-                    st.dataframe(df)
+                    if "finance" in sheet_key:
+                        st.markdown("### 💰 Finance and Accounts Summary")
+                        st.markdown("""
+                        Overview of contractor payments, supplier disbursements, and imprest management.
+                        """)
+                        if "Contractor Name" in df.columns and "Amount Paid" in df.columns:
+                            st.bar_chart(df.set_index("Contractor Name")["Amount Paid"])
 
-                elif "human resources" in sheet_key:
-                    st.markdown("### 👥 Human Resources Activities")
-                    st.markdown("""
-                    Lists staff training, complaints received, visitors attended to, and leave summaries.
-                    """)
-                    st.dataframe(df)
+                    elif "supply chain" in sheet_key:
+                        st.markdown("### 📦 Supply Chain Activities")
+                        st.markdown("""
+                        This section outlines purchases made, procurement plan implementation, and store levels.
+                        """)
+                        if "Description" in df.columns and "Amount" in df.columns:
+                            st.bar_chart(df.set_index("Description")["Amount"])
 
-                elif "road asset" in sheet_key:
-                    st.markdown("### 🛣️ Road Asset & Corridor Management")
-                    st.markdown("""
-                    Summary of road works progress and ARWP alignment for FY 2025/2026.
-                    """)
-                    st.dataframe(df)
+                    elif "ict" in sheet_key:
+                        st.markdown("### 💻 ICT Department Report")
+                        st.markdown("""
+                        Displays system downtime instances, equipment maintenance logs, and portal usage.
+                        """)
+                        st.dataframe(df)
 
+                    elif "transport" in sheet_key:
+                        st.markdown("### 🚚 Transport Department Report")
+                        st.markdown("""
+                        Visualizes fuel level monitoring and vehicle maintenance records.
+                        """)
+                        if "Vehicle" in df.columns and "Fuel Level" in df.columns:
+                            st.line_chart(df.set_index("Vehicle")["Fuel Level"])
+
+                    elif "survey" in sheet_key:
+                        st.markdown("### 🗺️ Survey Department Summary")
+                        st.markdown("""
+                        Displays corridor mappings, topographical surveys, and disputes resolved.
+                        """)
+                        st.dataframe(df)
+
+                    elif "human resources" in sheet_key:
+                        st.markdown("### 👥 Human Resources Activities")
+                        st.markdown("""
+                        Lists staff training, complaints received, visitors attended to, and leave summaries.
+                        """)
+                        st.dataframe(df)
+
+                    elif "road asset" in sheet_key:
+                        st.markdown("### 🛣️ Road Asset & Corridor Management")
+                        st.markdown("""
+                        Summary of road works progress and ARWP alignment for FY 2025/2026.
+                        """)
+                        st.dataframe(df)
+
+                    else:
+                        st.markdown("ℹ️ No specific visualization template for this sheet yet. Showing preview only.")
                 else:
-                    st.markdown("ℹ️ No specific visualization template for this sheet yet. Showing preview only.")
-            except ValueError:
-                st.error(f"❌ Sheet '{selected_sheet}' could not be loaded. Please verify the sheet exists in the Excel file.")
+                    st.error(f"❌ Sheet '{selected_sheet}' not found in Excel file.")
+            except ValueError as ve:
+                st.error(f"❌ Sheet '{selected_sheet}' could not be loaded. Error: {ve}")
     except Exception as e:
         st.error(f"❌ Failed to read Excel file: {e}")
 
