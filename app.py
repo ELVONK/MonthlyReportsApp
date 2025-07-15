@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import altair as alt
 import io
 from zipfile import ZipFile
+from openpyxl import load_workbook
 
 st.set_page_config(page_title="Monthly Report Dashboard", layout="wide")
 
@@ -24,10 +25,12 @@ if uploaded_file:
 
         try:
             st.markdown(f"## 📄 {selected_sheet}")
-            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, engine='openpyxl')
 
-            # Remove columns that are completely hidden in Excel (empty or unnamed)
-            df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
+            # Use openpyxl to get only visible columns
+            wb = load_workbook(uploaded_file, data_only=True)
+            ws = wb[selected_sheet]
+            visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if not ws.column_dimensions[cell.column_letter].hidden]
+            df = pd.read_excel(uploaded_file, sheet_name=selected_sheet, usecols=visible_columns)
 
             # Filtering for specific columns if present
             if 'Department' in df.columns:
@@ -97,8 +100,9 @@ if uploaded_file:
             # Export entire workbook data as zip of CSVs
             with ZipFile("workbook_export.zip", "w") as zipf:
                 for sheet in sheet_names:
-                    df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, engine='openpyxl')
-                    df_sheet = df_sheet.loc[:, ~df_sheet.columns.str.contains('^Unnamed')]
+                    ws = wb[sheet]
+                    visible_columns = [cell.value for cell in next(ws.iter_rows(min_row=1, max_row=1)) if not ws.column_dimensions[cell.column_letter].hidden]
+                    df_sheet = pd.read_excel(uploaded_file, sheet_name=sheet, usecols=visible_columns)
                     csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
                     zipf.writestr(f"{sheet}.csv", csv_bytes)
             with open("workbook_export.zip", "rb") as f:
