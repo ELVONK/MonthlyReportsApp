@@ -113,6 +113,7 @@ if uploaded_file:
 
                 if "Pie Chart" in chart_types and label_column is not None:
     st.markdown(f"#### 🥧 Pie Chart for: {value_column}")
+
     fig, ax = plt.subplots()
     pie_data = chart_data[[label_column, value_column]].dropna()
     pie_data['label_text'] = pie_data.apply(lambda row: f"{row[label_column]} ({row[value_column]}%)", axis=1)
@@ -130,9 +131,9 @@ if uploaded_file:
         angle = (p.theta2 + p.theta1) / 2
         x = 0.5 * np.cos(np.radians(angle))
         y = 0.5 * np.sin(np.radians(angle))
-        ax.text(
-            x, y,
+        ax.annotate(
             pie_data['label_text'].iloc[i],
+            xy=(x, y),
             ha='center', va='center',
             fontsize=7
         )
@@ -188,8 +189,6 @@ else:
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
-
 
 
 
