@@ -25,15 +25,20 @@ if uploaded_file:
         wb = load_workbook(uploaded_file, data_only=True)
         ws = wb[selected_sheet]
 
+        # Collect visible columns and their letter indexes
         header_row = next(ws.iter_rows(min_row=1, max_row=1))
-        visible_columns = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+        visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+        visible_letters = [col[0] for col in visible_col_info]
+        visible_headers = [col[1] for col in visible_col_info]
 
-        visible_rows = []
+        # Prepare consistent data from visible columns
+        visible_data = []
         for row in ws.iter_rows(min_row=2):
             if not ws.row_dimensions[row[0].row].hidden:
-                visible_rows.append([cell.value for cell in row if not ws.column_dimensions[cell.column_letter].hidden])
+                row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
+                visible_data.append(row_data)
 
-        df = pd.DataFrame(visible_rows, columns=[col[1] for col in visible_columns])
+        df = pd.DataFrame(visible_data, columns=visible_headers)
 
         if 'Department' in df.columns:
             departments = df['Department'].dropna().unique().tolist()
@@ -127,23 +132,21 @@ if uploaded_file:
         else:
             st.info("ℹ️ No data selected for chart generation.")
 
-        if "finance" in selected_sheet.lower():
-            st.success("This sheet contains finance-related data including payments and budgets.")
-        elif "hr" in selected_sheet.lower():
-            st.success("This sheet contains HR metrics like training and complaints.")
-        elif "ict" in selected_sheet.lower():
-            st.success("This sheet captures ICT infrastructure and support metrics.")
-
         with ZipFile("workbook_export.zip", "w") as zipf:
             for sheet in sheet_names:
                 ws = wb[sheet]
                 header_row = next(ws.iter_rows(min_row=1, max_row=1))
-                visible_columns = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-                visible_rows = [
-                    [cell.value for cell in row if not ws.column_dimensions[cell.column_letter].hidden]
-                    for row in ws.iter_rows(min_row=2) if not ws.row_dimensions[row[0].row].hidden
-                ]
-                df_sheet = pd.DataFrame(visible_rows, columns=[col[1] for col in visible_columns])
+                visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+                visible_letters = [col[0] for col in visible_col_info]
+                visible_headers = [col[1] for col in visible_col_info]
+
+                visible_rows = []
+                for row in ws.iter_rows(min_row=2):
+                    if not ws.row_dimensions[row[0].row].hidden:
+                        row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
+                        visible_rows.append(row_data)
+
+                df_sheet = pd.DataFrame(visible_rows, columns=visible_headers)
                 csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
                 zipf.writestr(f"{sheet}.csv", csv_bytes)
 
