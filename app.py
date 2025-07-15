@@ -130,12 +130,7 @@ for i, p in enumerate(wedges):
     x = 0.7 * np.cos(np.radians(angle))
     y = 0.7 * np.sin(np.radians(angle))
     ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=10, weight='bold')
-for i, p in enumerate(ax.patches):
-    x, y = p.get_center()
-    angle = (p.theta2 + p.theta1) / 2
-    x = 0.7 * plt.math.cos(angle * plt.math.pi / 180)
-    y = 0.7 * plt.math.sin(angle * plt.math.pi / 180)
-    ax.text(x, y, pie_data['label_text'].iloc[i], ha='center', va='center', fontsize=10, weight='bold')
+
                         ax.set_title(f"{value_column} Distribution", fontsize=14, loc='center')
                         st.pyplot(fig)
                     else:
@@ -184,5 +179,4 @@ for i, p in enumerate(ax.patches):
         st.error(f"❌ Failed to read Excel file: {e}")
 else:
     st.warning("Please upload a valid Excel report to continue.")
-
 
