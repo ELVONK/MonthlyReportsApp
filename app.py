@@ -36,127 +36,132 @@ if uploaded_file:
         for row in ws.iter_rows(min_row=2):
             if not ws.row_dimensions[row[0].row].hidden:
                 row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
-                visible_data.append(row_data)
+                if any(val is not None and val != "" for val in row_data):
+                    visible_data.append(row_data)
 
         df = pd.DataFrame(visible_data, columns=visible_headers)
 
-        if 'Department' in df.columns:
-            departments = df['Department'].dropna().unique().tolist()
-            selected_dept = st.selectbox(f"Filter by Department in '{selected_sheet}'", departments)
-            df = df[df['Department'] == selected_dept]
-
-        st.dataframe(df, use_container_width=True)
-
-        csv = df.to_csv(index=False).encode('utf-8')
-        st.download_button(
-            label="⬇️ Download Table as CSV",
-            data=csv,
-            file_name=f"{selected_sheet}_filtered_data.csv",
-            mime="text/csv"
-        )
-
-        numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-        non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
-        default_label = non_numeric_columns[0] if non_numeric_columns else None
-        label_column = st.selectbox("Select label column (x-axis / category):", [None] + non_numeric_columns, index=(non_numeric_columns.index(default_label) + 1) if default_label else 0)
-        value_column = st.selectbox("Select column for values (y-axis):", numeric_columns)
-
-        if label_column:
-            unique_labels = df[label_column].dropna().tolist()
-            chart_data = df[df[label_column].isin(unique_labels)][[label_column, value_column]].dropna()
-            chart_data[label_column] = pd.Categorical(chart_data[label_column], categories=unique_labels, ordered=True)
-            chart_data = chart_data.sort_values(label_column)
+        if df.empty:
+            st.warning("📭 No visible data found in the selected sheet.")
         else:
-            chart_data = df[[value_column]].dropna().reset_index()
-            chart_data.rename(columns={'index': 'index_label'}, inplace=True)
-            chart_data['index_label'] = chart_data['index_label'].astype(str)
-            label_column = 'index_label'
-            chart_data[label_column] = chart_data[label_column]
+            if 'Department' in df.columns:
+                departments = df['Department'].dropna().unique().tolist()
+                selected_dept = st.selectbox(f"Filter by Department in '{selected_sheet}'", departments)
+                df = df[df['Department'] == selected_dept]
 
-        st.markdown("### 📊 Selected Data Preview")
-        preview_data = chart_data.copy()
-        if preview_data[value_column].max() <= 1 and preview_data[value_column].min() >= 0:
-            preview_data[value_column] = (preview_data[value_column] * 100).round(0).astype(int).astype(str) + '%'
-        else:
-            preview_data[value_column] = preview_data[value_column].apply(lambda x: f"{x:,.0f}")
-        st.dataframe(preview_data[[label_column, value_column]], use_container_width=True)
+            st.dataframe(df, use_container_width=True)
 
-        st.markdown("### 🎨 Chart Styling")
-        color_scheme = st.selectbox("Choose a color theme:", ["category10", "category20", "tableau10", "accent", "dark2"], index=0)
-
-        chart_types = st.multiselect(
-            "Select chart types to display:",
-            ["Bar Chart", "Line Chart", "Pie Chart"],
-            default=["Bar Chart"]
-        )
-
-        chart_width = st.slider("Chart width", 400, 1000, 700)
-        chart_height = st.slider("Chart height", 200, 600, 300)
-
-        if not chart_data.empty:
-            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=",.0f")]
-
-            if "Bar Chart" in chart_types:
-                st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
-                bar_chart = alt.Chart(chart_data).mark_bar().encode(
-                    x=alt.X(f"{label_column}:O", sort=unique_labels),
-                    y=alt.Y(f"{value_column}:Q"),
-                    color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=tooltip_vals
-                ).properties(width=chart_width, height=chart_height)
-                st.altair_chart(bar_chart)
-
-            if "Line Chart" in chart_types:
-                st.markdown(f"#### 📈 Line Chart for: {value_column}")
-                line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
-                    x=alt.X(f"{label_column}:O", sort=unique_labels),
-                    y=alt.Y(f"{value_column}:Q"),
-                    color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=tooltip_vals
-                ).properties(width=chart_width, height=chart_height)
-                st.altair_chart(line_chart)
-
-            if "Pie Chart" in chart_types:
-                st.markdown(f"#### 🥰 Pie Chart (Donut) for: {value_column}")
-                total = chart_data[value_column].sum()
-                chart_data['percentage'] = chart_data[value_column] / total * 100
-                chart_data['label_display'] = chart_data[label_column].astype(str) + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
-
-                pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
-                    theta=alt.Theta(field=value_column, type='quantitative'),
-                    color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=[label_column, alt.Tooltip('percentage:Q', title='Percentage', format='.0f')]
-                ).properties(width=chart_height, height=chart_height)
-
-                st.altair_chart(pie_chart)
-        else:
-            st.info("ℹ️ No data selected for chart generation.")
-
-        with ZipFile("workbook_export.zip", "w") as zipf:
-            for sheet in sheet_names:
-                ws = wb[sheet]
-                header_row = next(ws.iter_rows(min_row=1, max_row=1))
-                visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
-                visible_letters = [col[0] for col in visible_col_info]
-                visible_headers = [col[1] for col in visible_col_info]
-
-                visible_rows = []
-                for row in ws.iter_rows(min_row=2):
-                    if not ws.row_dimensions[row[0].row].hidden:
-                        row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
-                        visible_rows.append(row_data)
-
-                df_sheet = pd.DataFrame(visible_rows, columns=visible_headers)
-                csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
-                zipf.writestr(f"{sheet}.csv", csv_bytes)
-
-        with open("workbook_export.zip", "rb") as f:
+            csv = df.to_csv(index=False).encode('utf-8')
             st.download_button(
-                label="⬇️ Download Entire Workbook as ZIP of CSVs",
-                data=f.read(),
-                file_name="Workbook_Export.zip",
-                mime="application/zip"
+                label="⬇️ Download Table as CSV",
+                data=csv,
+                file_name=f"{selected_sheet}_filtered_data.csv",
+                mime="text/csv"
             )
+
+            numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+            non_numeric_columns = df.select_dtypes(exclude=['number']).columns.tolist()
+            default_label = non_numeric_columns[0] if non_numeric_columns else None
+            label_column = st.selectbox("Select label column (x-axis / category):", [None] + non_numeric_columns, index=(non_numeric_columns.index(default_label) + 1) if default_label else 0)
+            value_column = st.selectbox("Select column for values (y-axis):", numeric_columns)
+
+            if label_column:
+                unique_labels = df[label_column].dropna().tolist()
+                chart_data = df[df[label_column].isin(unique_labels)][[label_column, value_column]].dropna()
+                chart_data[label_column] = pd.Categorical(chart_data[label_column], categories=unique_labels, ordered=True)
+                chart_data = chart_data.sort_values(label_column)
+            else:
+                chart_data = df[[value_column]].dropna().reset_index()
+                chart_data.rename(columns={'index': 'index_label'}, inplace=True)
+                chart_data['index_label'] = chart_data['index_label'].astype(str)
+                label_column = 'index_label'
+                chart_data[label_column] = chart_data[label_column]
+
+            st.markdown("### 📊 Selected Data Preview")
+            preview_data = chart_data.copy()
+            if preview_data[value_column].max() <= 1 and preview_data[value_column].min() >= 0:
+                preview_data[value_column] = (preview_data[value_column] * 100).round(0).astype(int).astype(str) + '%'
+            else:
+                preview_data[value_column] = preview_data[value_column].apply(lambda x: f"{x:,.0f}")
+            st.dataframe(preview_data[[label_column, value_column]], use_container_width=True)
+
+            st.markdown("### 🎨 Chart Styling")
+            color_scheme = st.selectbox("Choose a color theme:", ["category10", "category20", "tableau10", "accent", "dark2"], index=0)
+
+            chart_types = st.multiselect(
+                "Select chart types to display:",
+                ["Bar Chart", "Line Chart", "Pie Chart"],
+                default=["Bar Chart"]
+            )
+
+            chart_width = st.slider("Chart width", 400, 1000, 700)
+            chart_height = st.slider("Chart height", 200, 600, 300)
+
+            if not chart_data.empty:
+                tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=",.0f")]
+
+                if "Bar Chart" in chart_types:
+                    st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
+                    bar_chart = alt.Chart(chart_data).mark_bar().encode(
+                        x=alt.X(f"{label_column}:O", sort=unique_labels),
+                        y=alt.Y(f"{value_column}:Q"),
+                        color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
+                        tooltip=tooltip_vals
+                    ).properties(width=chart_width, height=chart_height)
+                    st.altair_chart(bar_chart)
+
+                if "Line Chart" in chart_types:
+                    st.markdown(f"#### 📈 Line Chart for: {value_column}")
+                    line_chart = alt.Chart(chart_data).mark_line(point=True).encode(
+                        x=alt.X(f"{label_column}:O", sort=unique_labels),
+                        y=alt.Y(f"{value_column}:Q"),
+                        color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
+                        tooltip=tooltip_vals
+                    ).properties(width=chart_width, height=chart_height)
+                    st.altair_chart(line_chart)
+
+                if "Pie Chart" in chart_types:
+                    st.markdown(f"#### 🥰 Pie Chart (Donut) for: {value_column}")
+                    total = chart_data[value_column].sum()
+                    chart_data['percentage'] = chart_data[value_column] / total * 100
+                    chart_data['label_display'] = chart_data[label_column].astype(str) + ': ' + chart_data['percentage'].round(0).astype(int).astype(str) + '%'
+
+                    pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
+                        theta=alt.Theta(field=value_column, type='quantitative'),
+                        color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme)),
+                        tooltip=[label_column, alt.Tooltip('percentage:Q', title='Percentage', format='.0f')]
+                    ).properties(width=chart_height, height=chart_height)
+
+                    st.altair_chart(pie_chart)
+            else:
+                st.info("ℹ️ No data selected for chart generation.")
+
+            with ZipFile("workbook_export.zip", "w") as zipf:
+                for sheet in sheet_names:
+                    ws = wb[sheet]
+                    header_row = next(ws.iter_rows(min_row=1, max_row=1))
+                    visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+                    visible_letters = [col[0] for col in visible_col_info]
+                    visible_headers = [col[1] for col in visible_col_info]
+
+                    visible_rows = []
+                    for row in ws.iter_rows(min_row=2):
+                        if not ws.row_dimensions[row[0].row].hidden:
+                            row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
+                            if any(val is not None and val != "" for val in row_data):
+                                visible_rows.append(row_data)
+
+                    df_sheet = pd.DataFrame(visible_rows, columns=visible_headers)
+                    csv_bytes = df_sheet.to_csv(index=False).encode("utf-8")
+                    zipf.writestr(f"{sheet}.csv", csv_bytes)
+
+            with open("workbook_export.zip", "rb") as f:
+                st.download_button(
+                    label="⬇️ Download Entire Workbook as ZIP of CSVs",
+                    data=f.read(),
+                    file_name="Workbook_Export.zip",
+                    mime="application/zip"
+                )
 
     except Exception as e:
         st.error(f"❌ Failed to read Excel file: {e}")
