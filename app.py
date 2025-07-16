@@ -93,6 +93,8 @@ if uploaded_file:
         chart_width = st.slider("Chart width", 400, 1000, 700)
         chart_height = st.slider("Chart height", 200, 600, 300)
 
+        footnote = st.text_area("📌 Add a footnote or chart explanation:")
+
         if not chart_data.empty:
             tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=".2f")]
 
@@ -128,6 +130,10 @@ if uploaded_file:
                 ).properties(width=chart_height + 150, height=chart_height)
 
                 st.altair_chart(pie_chart)
+
+            if footnote:
+                st.markdown(f"<div style='font-size: 0.85rem; margin-top: 0.5em; color: gray;'><i>Note:</i> {footnote}</div>", unsafe_allow_html=True)
+
         else:
             st.info("ℹ️ No data selected for chart generation.")
 
