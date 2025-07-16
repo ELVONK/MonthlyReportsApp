@@ -93,7 +93,7 @@ if uploaded_file:
         chart_height = st.slider("Chart height", 200, 600, 300)
 
         if not chart_data.empty:
-            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=",.0f")]
+            tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=".2f")]
 
             if "Bar Chart" in chart_types:
                 st.markdown(f"#### 🔢 Bar Chart for: {value_column}")
@@ -101,7 +101,7 @@ if uploaded_file:
                     x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=[label_column, value_column]
+                    tooltip=tooltip_vals
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(bar_chart)
 
@@ -111,7 +111,7 @@ if uploaded_file:
                     x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=[label_column, value_column]
+                    tooltip=tooltip_vals
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(line_chart)
 
@@ -120,10 +120,10 @@ if uploaded_file:
 
                 chart_data['label_display'] = chart_data[label_column].astype(str)
 
-                pie_chart = alt.Chart(chart_data).mark_arc().encode(
+                pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=0).encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
                     color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme), legend=alt.Legend(orient="right")),
-                    tooltip=[label_column, value_column]
+                    tooltip=tooltip_vals
                 ).properties(width=chart_height + 150, height=chart_height)
 
                 st.altair_chart(pie_chart)
