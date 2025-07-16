@@ -5,6 +5,7 @@ import pandas as pd
 import altair as alt
 from zipfile import ZipFile
 from openpyxl import load_workbook
+from openpyxl.utils import get_column_letter
 
 st.set_page_config(page_title="Monthly Report Dashboard", layout="wide")
 
@@ -26,14 +27,14 @@ if uploaded_file:
         ws = wb[selected_sheet]
 
         header_row = next(ws.iter_rows(min_row=1, max_row=1))
-        visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+        visible_col_info = [(get_column_letter(cell.column), cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[get_column_letter(cell.column)].hidden]
         visible_letters = [col[0] for col in visible_col_info]
         visible_headers = [col[1] for col in visible_col_info]
 
         visible_data = []
         for row in ws.iter_rows(min_row=2):
             if not ws.row_dimensions[row[0].row].hidden:
-                row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
+                row_data = [cell.value for cell in row if get_column_letter(cell.column) in visible_letters]
                 if any(cell is not None and cell != "" for cell in row_data):
                     visible_data.append(row_data)
 
@@ -134,14 +135,14 @@ if uploaded_file:
             for sheet in sheet_names:
                 ws = wb[sheet]
                 header_row = next(ws.iter_rows(min_row=1, max_row=1))
-                visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
+                visible_col_info = [(get_column_letter(cell.column), cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[get_column_letter(cell.column)].hidden]
                 visible_letters = [col[0] for col in visible_col_info]
                 visible_headers = [col[1] for col in visible_col_info]
 
                 visible_rows = []
                 for row in ws.iter_rows(min_row=2):
                     if not ws.row_dimensions[row[0].row].hidden:
-                        row_data = [cell.value for cell in row if cell.column_letter in visible_letters]
+                        row_data = [cell.value for cell in row if get_column_letter(cell.column) in visible_letters]
                         if any(cell is not None and cell != "" for cell in row_data):
                             visible_rows.append(row_data)
 
