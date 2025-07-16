@@ -10,7 +10,7 @@ from openpyxl.utils import get_column_letter
 st.set_page_config(page_title="Monthly Report Dashboard", layout="wide")
 
 st.markdown("""
-    <h1 style='text-align: center; color: #1f77b4;'>📊 Monthly Departmental Report Dashboard</h1>
+    <h1 style='text-align: center; color: #1f77b4;'>📊 Departmental Reports Dashboard</h1>
 """, unsafe_allow_html=True)
 
 uploaded_file = st.file_uploader("Upload the Excel report", type=[".xlsx"])
