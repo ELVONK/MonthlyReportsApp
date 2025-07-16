@@ -25,13 +25,11 @@ if uploaded_file:
         wb = load_workbook(uploaded_file, data_only=True)
         ws = wb[selected_sheet]
 
-        # Collect visible columns and their letter indexes
         header_row = next(ws.iter_rows(min_row=1, max_row=1))
         visible_col_info = [(cell.column_letter, cell.value) for cell in header_row if cell.value is not None and not ws.column_dimensions[cell.column_letter].hidden]
         visible_letters = [col[0] for col in visible_col_info]
         visible_headers = [col[1] for col in visible_col_info]
 
-        # Prepare consistent data from visible columns
         visible_data = []
         for row in ws.iter_rows(min_row=2):
             if not ws.row_dimensions[row[0].row].hidden:
@@ -124,9 +122,9 @@ if uploaded_file:
 
                 pie_chart = alt.Chart(chart_data).mark_arc().encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
-                    color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme)),
+                    color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme), legend=alt.Legend(orient="right")),
                     tooltip=[label_column, alt.Tooltip(f'{value_column}:Q', title='Value', format=',.0f')]
-                ).properties(width=chart_height, height=chart_height)
+                ).properties(width=chart_height + 150, height=chart_height)
 
                 st.altair_chart(pie_chart)
         else:
