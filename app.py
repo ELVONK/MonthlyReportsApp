@@ -135,8 +135,9 @@ if uploaded_file:
                 st.altair_chart(pie_chart)
 
             if possible_footnotes:
+                st.markdown("### 📝 Footnote")
                 st.markdown(f"""
-                    <div style='font-size: 1rem; margin-top: 1em; padding-top: 0.5em; color: #333; border-top: 1px solid #ccc;'>
+                    <div style='font-size: 1rem; margin-top: 1em; padding: 0.8em 1em; color: #444; border-left: 4px solid #999; background-color: #f9f9f9;'>
                         <b style='color: #000;'>Note:</b> {possible_footnotes[-1]}
                     </div>
                 """, unsafe_allow_html=True)
