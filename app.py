@@ -132,7 +132,11 @@ if uploaded_file:
                 st.altair_chart(pie_chart)
 
             if footnote:
-                st.markdown(f"<div style='font-size: 0.85rem; margin-top: 0.5em; color: gray;'><i>Note:</i> {footnote}</div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                    <div style='font-size: 0.9rem; margin-top: 1em; padding-top: 0.5em; color: #444; border-top: 1px solid #ccc;'>
+                        <b>Note:</b> {footnote}
+                    </div>
+                """, unsafe_allow_html=True)
 
         else:
             st.info("ℹ️ No data selected for chart generation.")
