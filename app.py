@@ -101,7 +101,7 @@ if uploaded_file:
                     x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=tooltip_vals
+                    tooltip=[label_column, value_column]
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(bar_chart)
 
@@ -111,7 +111,7 @@ if uploaded_file:
                     x=alt.X(f"{label_column}:O", sort=unique_labels),
                     y=alt.Y(f"{value_column}:Q"),
                     color=alt.Color(f"{label_column}:N", scale=alt.Scale(scheme=color_scheme)),
-                    tooltip=tooltip_vals
+                    tooltip=[label_column, value_column]
                 ).properties(width=chart_width, height=chart_height)
                 st.altair_chart(line_chart)
 
@@ -123,7 +123,7 @@ if uploaded_file:
                 pie_chart = alt.Chart(chart_data).mark_arc().encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
                     color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme), legend=alt.Legend(orient="right")),
-                    tooltip=[label_column, alt.Tooltip(f'{value_column}:Q', title='Value', format=',.0f')]
+                    tooltip=[label_column, value_column]
                 ).properties(width=chart_height + 150, height=chart_height)
 
                 st.altair_chart(pie_chart)
