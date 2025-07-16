@@ -32,11 +32,16 @@ if uploaded_file:
         visible_headers = [col[1] for col in visible_col_info]
 
         visible_data = []
+        possible_footnotes = []
         for row in ws.iter_rows(min_row=2):
             if not ws.row_dimensions[row[0].row].hidden:
                 row_data = [cell.value for cell in row if get_column_letter(cell.column) in visible_letters]
                 if any(cell is not None and cell != "" for cell in row_data):
                     visible_data.append(row_data)
+                else:
+                    row_text = " ".join([str(cell.value) for cell in row if cell.value])
+                    if "footnote" in row_text.lower():
+                        possible_footnotes.append(row_text.strip())
 
         df = pd.DataFrame(visible_data, columns=visible_headers)
 
@@ -93,8 +98,6 @@ if uploaded_file:
         chart_width = st.slider("Chart width", 400, 1000, 700)
         chart_height = st.slider("Chart height", 200, 600, 300)
 
-        footnote = st.text_area("📌 Add a footnote or chart explanation:")
-
         if not chart_data.empty:
             tooltip_vals = [label_column, alt.Tooltip(f"{value_column}:Q", title="Value", format=".2f")]
 
@@ -131,10 +134,10 @@ if uploaded_file:
 
                 st.altair_chart(pie_chart)
 
-            if footnote:
+            if possible_footnotes:
                 st.markdown(f"""
-                    <div style='font-size: 0.9rem; margin-top: 1em; padding-top: 0.5em; color: #444; border-top: 1px solid #ccc;'>
-                        <b>Note:</b> {footnote}
+                    <div style='font-size: 1rem; margin-top: 1em; padding-top: 0.5em; color: #333; border-top: 1px solid #ccc;'>
+                        <b style='color: #000;'>Note:</b> {possible_footnotes[-1]}
                     </div>
                 """, unsafe_allow_html=True)
 
