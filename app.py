@@ -118,11 +118,11 @@ if uploaded_file:
                 st.altair_chart(line_chart)
 
             if "Pie Chart" in chart_types:
-                st.markdown(f"#### 🥰 Pie Chart (Donut) for: {value_column}")
+                st.markdown(f"#### 🥰 Pie Chart for: {value_column}")
 
                 chart_data['label_display'] = chart_data[label_column].astype(str)
 
-                pie_chart = alt.Chart(chart_data).mark_arc(innerRadius=60).encode(
+                pie_chart = alt.Chart(chart_data).mark_arc().encode(
                     theta=alt.Theta(field=value_column, type='quantitative'),
                     color=alt.Color(field='label_display', type='nominal', scale=alt.Scale(scheme=color_scheme)),
                     tooltip=[label_column, alt.Tooltip(f'{value_column}:Q', title='Value', format=',.0f')]
