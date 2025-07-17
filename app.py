@@ -1,3 +1,4 @@
+
 # Enhanced app.py with clean chart rendering and error-free structure
 
 import streamlit as st
@@ -44,6 +45,11 @@ if uploaded_file:
                         possible_footnotes.append(row_text.strip())
 
         df = pd.DataFrame(visible_data, columns=visible_headers)
+
+        # Fix for "Date" column
+        if 'Date' in df.columns:
+            df['Date'] = pd.to_datetime(df['Date'], errors='coerce', dayfirst=True)
+            df = df.dropna(subset=['Date'])
 
         if 'Department' in df.columns:
             departments = df['Department'].dropna().unique().tolist()
