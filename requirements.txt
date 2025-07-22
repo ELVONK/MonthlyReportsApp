@@ -5,3 +5,4 @@ altair
 fpdf
 Pillow
 streamlit-drawable-canvas
+qrcode
