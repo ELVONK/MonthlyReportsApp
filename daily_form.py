@@ -123,7 +123,6 @@ def generate_pdf(data, signature_path):
         pdf.image(signature_path, x=10, y=pdf.get_y(), w=50)
         pdf.ln(30)
 
-    # QR Code in footer
     pdf.set_y(-40)
     pdf.image(qr_path, x=10, y=pdf.get_y(), w=25)
     pdf.set_font("Arial", style="I", size=9)
@@ -133,3 +132,93 @@ def generate_pdf(data, signature_path):
 
     pdf.output(filename)
     return filename
+
+def daily_work_form():
+    st.title("📝 Daily Works Submission Form")
+
+    with st.form("daily_work_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            location = st.text_input("Location/Region")
+            project_name = st.text_input("Project Name")
+            contract_no = st.text_input("Contract No.")
+            contractor = st.text_input("Contractor")
+            date = st.date_input("Date", value=datetime.date.today())
+            day = st.text_input("Day")
+        with col2:
+            sheet_no = st.text_input("Sheet No.")
+            total_sheets = st.text_input("Total Sheets")
+            time_from = st.text_input("Time of Operation From")
+            time_to = st.text_input("To")
+            inspector = st.text_input("Inspector")
+            site_agent = st.text_input("Site Agent")
+            re_are = st.text_input("R.E. / A.R.E")
+
+        weather = st.text_area("Weather Conditions")
+        equipment = st.text_area("Plant and Equipment")
+        materials = st.text_area("Materials Delivered")
+        labour = st.text_area("Labour")
+        operations = st.text_area("Operations")
+
+        st.markdown("**Draw your signature:**")
+        canvas_result = st_canvas(
+            fill_color="rgba(0, 0, 0, 0.3)",
+            stroke_width=2,
+            stroke_color="#000000",
+            background_color="#ffffff",
+            update_streamlit=True,
+            height=150,
+            drawing_mode="freedraw",
+            key="canvas",
+        )
+
+        confirm = st.checkbox("I confirm the above information is correct")
+        submitted = st.form_submit_button("Submit Form")
+
+    if submitted and confirm:
+        sig_path = None
+        if canvas_result.image_data is not None:
+            img = PIL.Image.fromarray((canvas_result.image_data).astype("uint8"))
+            sig_path = f"submitted_forms/signature_{project_name.replace(' ', '_')}.png"
+            img.save(sig_path)
+
+        data = {
+            "Location/Region": location,
+            "Project Name": project_name,
+            "Contract No.": contract_no,
+            "Contractor": contractor,
+            "Date": date.strftime("%Y-%m-%d"),
+            "Day": day,
+            "Sheet No.": sheet_no,
+            "Total Sheets": total_sheets,
+            "Time of Operation From": time_from,
+            "To": time_to,
+            "Inspector": inspector,
+            "Site Agent": site_agent,
+            "R.E. / A.R.E": re_are,
+            "Weather Conditions": weather,
+            "Plant and Equipment": equipment,
+            "Materials Delivered": materials,
+            "Labour": labour,
+            "Operations": operations,
+        }
+
+        file_path = generate_pdf(data, sig_path)
+        send_email_with_attachment(
+            subject="📝 New Daily Work Form Submitted",
+            body=f"Form for project '{project_name}' submitted on {date}.",
+            to_email=RECIPIENT_EMAIL,
+            file_path=file_path
+        )
+
+        st.session_state["submitted_form_path"] = file_path
+        st.success("Form submitted successfully!")
+
+    if "submitted_form_path" in st.session_state:
+        with open(st.session_state["submitted_form_path"], "rb") as f:
+            st.download_button(
+                "📄 Download Submitted PDF",
+                f,
+                file_name=os.path.basename(st.session_state["submitted_form_path"]),
+                mime="application/pdf"
+            )
