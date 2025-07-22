@@ -1,8 +1,7 @@
 streamlit
 pandas
 openpyxl
-numpy
-matplotlib
-xlsxwriter
-beautifulsoup4
-requests
+altair
+fpdf
+Pillow
+streamlit-drawable-canvas
