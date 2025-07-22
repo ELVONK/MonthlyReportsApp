@@ -10,7 +10,6 @@ import smtplib
 from email.message import EmailMessage
 from streamlit_drawable_canvas import st_canvas
 import PIL.Image
-from fpdf.enums import XPos, YPos
 import qrcode
 
 # Create folder to store PDFs
@@ -124,7 +123,7 @@ def generate_pdf(data, signature_path):
         pdf.image(signature_path, x=10, y=pdf.get_y(), w=50)
         pdf.ln(30)
 
-    # Optional: QR Code in footer
+    # QR Code in footer
     pdf.set_y(-40)
     pdf.image(qr_path, x=10, y=pdf.get_y(), w=25)
     pdf.set_font("Arial", style="I", size=9)
