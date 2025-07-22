@@ -6,6 +6,7 @@ import altair as alt
 from openpyxl import load_workbook
 from openpyxl.utils import get_column_letter
 from zipfile import ZipFile
+import os
 
 def report_dashboard():
     st.title("📊 Monthly Report Dashboard")
@@ -54,22 +55,55 @@ def report_dashboard():
             csv = df.to_csv(index=False).encode('utf-8')
             st.download_button("⬇️ Download Filtered CSV", csv, f"{selected_sheet}_filtered.csv", "text/csv")
 
+            # KPI Summary
+            st.subheader("📌 KPI Summary")
+            if 'Amount' in df.columns:
+                st.metric("Total Amount", f"{df['Amount'].sum():,.2f}")
+            if 'Activity' in df.columns:
+                st.metric("Unique Activities", df['Activity'].nunique())
+
             # Charts
             numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
             non_numeric_cols = df.select_dtypes(exclude=['number']).columns.tolist()
 
             if numeric_cols and non_numeric_cols:
-                x_col = st.selectbox("X-axis", non_numeric_cols)
-                y_col = st.selectbox("Y-axis", numeric_cols)
+                x_col = st.selectbox("X-axis (label/category)", non_numeric_cols)
+                y_col = st.selectbox("Y-axis (value)", numeric_cols)
+                chart_type = st.selectbox("Chart Type", ["Bar", "Line", "Pie"])
 
-                chart = alt.Chart(df).mark_bar().encode(
-                    x=alt.X(x_col, sort='-y'),
-                    y=alt.Y(y_col),
-                    color=x_col,
-                    tooltip=[x_col, y_col]
-                ).properties(width=700, height=400)
+                chart_data = df[[x_col, y_col]].dropna()
 
-                st.altair_chart(chart)
+                if chart_type == "Bar":
+                    chart = alt.Chart(chart_data).mark_bar().encode(
+                        x=alt.X(x_col, sort='-y'),
+                        y=y_col,
+                        color=x_col,
+                        tooltip=[x_col, y_col]
+                    )
+                elif chart_type == "Line":
+                    chart = alt.Chart(chart_data).mark_line(point=True).encode(
+                        x=x_col,
+                        y=y_col,
+                        color=x_col,
+                        tooltip=[x_col, y_col]
+                    )
+                elif chart_type == "Pie":
+                    chart = alt.Chart(chart_data).mark_arc().encode(
+                        theta=alt.Theta(field=y_col, type='quantitative'),
+                        color=alt.Color(field=x_col, type='nominal'),
+                        tooltip=[x_col, y_col]
+                    )
+                else:
+                    st.warning("Unknown chart type")
+                    return
+
+                st.altair_chart(chart.properties(width=700, height=400))
+
+            # Archive Summary
+            if st.button("📦 Archive This Report"):
+                archive_path = f"archived_reports/{selected_sheet}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                df.to_csv(archive_path, index=False)
+                st.success(f"Archived to: {archive_path}")
 
         except Exception as e:
             st.error(f"Failed to process file: {e}")
