@@ -11,9 +11,11 @@ from email.message import EmailMessage
 from streamlit_drawable_canvas import st_canvas
 import PIL.Image
 import qrcode
+import altair as alt
 
-# Create folder to store PDFs
+# Create folder to store PDFs and archived reports
 os.makedirs("submitted_forms", exist_ok=True)
+os.makedirs("archived_reports", exist_ok=True)
 
 # Email Configuration (secured using environment variables)
 EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
@@ -77,6 +79,15 @@ def generate_pdf(data, signature_path=None):
     file_name = f"submitted_forms/Daily_Work_Form_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.pdf"
     pdf.output(file_name)
     return file_name
+
+def display_kpi_summary(df):
+    st.subheader("📌 Key Performance Indicators (KPIs)")
+    if 'Labour' in df.columns:
+        st.metric("Total Labour Records", df['Labour'].notna().sum())
+    if 'Materials Delivered' in df.columns:
+        st.metric("Material Entries", df['Materials Delivered'].notna().sum())
+    if 'Operations' in df.columns:
+        st.metric("Unique Operations", df['Operations'].nunique())
 
 def daily_work_form():
     st.title("📝 Daily Works Submission Form")
@@ -159,7 +170,11 @@ def daily_work_form():
         st.session_state["submitted_form_path"] = file_path
         st.success("Form submitted successfully!")
 
-    if "submitted_form_path" in st.session_state:
+        archive_path = os.path.join("archived_reports", os.path.basename(file_path))
+        os.rename(file_path, archive_path)
+        st.success(f"Form archived in: {archive_path}")
+
+    if "submitted_form_path" in st.session_state and os.path.exists(st.session_state["submitted_form_path"]):
         with open(st.session_state["submitted_form_path"], "rb") as f:
             st.download_button(
                 "📄 Download Submitted PDF",
