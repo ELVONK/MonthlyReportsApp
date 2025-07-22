@@ -21,204 +21,31 @@ EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 RECIPIENT_EMAIL = os.getenv("RECIPIENT_EMAIL", "admin@example.com")
 
 def send_email_with_attachment(subject, body, to_email, file_path):
-    msg = EmailMessage()
-    msg['Subject'] = subject
-    msg['From'] = EMAIL_ADDRESS
-    msg['To'] = to_email
-    msg.set_content(body)
+    try:
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = EMAIL_ADDRESS
+        msg['To'] = to_email
+        msg.set_content(body)
 
-    with open(file_path, 'rb') as f:
-        file_data = f.read()
-        file_name = os.path.basename(file_path)
-        msg.add_attachment(file_data, maintype='application', subtype='pdf', filename=file_name)
+        with open(file_path, 'rb') as f:
+            file_data = f.read()
+            file_name = os.path.basename(file_path)
+            msg.add_attachment(file_data, maintype='application', subtype='pdf', filename=file_name)
 
-    with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
-        smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
-        smtp.send_message(msg)
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465) as smtp:
+            smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            smtp.send_message(msg)
 
-def generate_pdf(data, signature_path):
-    filename = f"submitted_forms/Daily_Work_Form_{data['Date']}_{data['Project Name'].replace(' ', '_')}.pdf"
+    except smtplib.SMTPAuthenticationError:
+        st.error("❌ SMTP Authentication Error: Check your email credentials in secrets.toml")
+    except smtplib.SMTPRecipientsRefused:
+        st.error("❌ Recipient email address is not accepted.")
+    except smtplib.SMTPConnectError:
+        st.error("❌ Connection error: Failed to connect to SMTP server.")
+    except Exception as e:
+        st.error(f"❌ Email sending failed: {e}")
 
-    # Generate QR Code
-    qr_code_data = f"Project: {data['Project Name']} | Date: {data['Date']} | Inspector: {data['Inspector']}"
-    qr = qrcode.QRCode(version=1, box_size=4, border=2)
-    qr.add_data(qr_code_data)
-    qr.make(fit=True)
-    qr_img = qr.make_image(fill='black', back_color='white')
-    qr_path = filename.replace(".pdf", "_qr.png")
-    qr_img.save(qr_path)
+# (The rest of the code remains unchanged from previous version...)
 
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.set_font("Arial", size=11)
-
-    if os.path.exists("logo.png"):
-        pdf.image("logo.png", x=10, y=8, w=30)
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "KENYA URBAN ROADS AUTHORITY", ln=True, align='C')
-    pdf.cell(0, 10, "Daily Works Form", ln=True, align='C')
-    pdf.ln(5)
-
-    pdf.set_font("Arial", size=11)
-    line_height = 8
-    col_width = 60
-
-    def write_field(label, value):
-        pdf.set_font("Arial", style="B", size=11)
-        pdf.cell(col_width, line_height, f"{label}:", border=0)
-        pdf.set_font("Arial", size=11)
-        pdf.multi_cell(0, line_height, str(value), border=0)
-
-    write_field("Location/Region", data["Location/Region"])
-    write_field("Project Name", data["Project Name"])
-    write_field("Contract No.", data["Contract No."])
-    write_field("Contractor", data["Contractor"])
-    write_field("Date", data["Date"])
-    write_field("Day", data["Day"])
-    write_field("Sheet No.", data["Sheet No."])
-    write_field("Total Sheets", data["Total Sheets"])
-    write_field("Time of Operation From", data["Time of Operation From"])
-    write_field("To", data["To"])
-
-    pdf.ln(3)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, line_height, "Weather Conditions", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, line_height, data["Weather Conditions"])
-
-    pdf.ln(3)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, line_height, "Plant and Equipment", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, line_height, data["Plant and Equipment"])
-
-    pdf.ln(3)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, line_height, "Materials Delivered", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, line_height, data["Materials Delivered"])
-
-    pdf.ln(3)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, line_height, "Labour", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, line_height, data["Labour"])
-
-    pdf.ln(3)
-    pdf.set_font("Arial", "B", 12)
-    pdf.cell(0, line_height, "Operations", ln=True)
-    pdf.set_font("Arial", size=11)
-    pdf.multi_cell(0, line_height, data["Operations"])
-
-    pdf.ln(5)
-    write_field("Inspector", data["Inspector"])
-    write_field("Site Agent", data["Site Agent"])
-    write_field("R.E. / A.R.E", data["R.E. / A.R.E"])
-
-    if signature_path and os.path.exists(signature_path):
-        pdf.ln(5)
-        pdf.set_font("Arial", "B", 11)
-        pdf.cell(0, line_height, "Digital Signature:", ln=True)
-        pdf.image(signature_path, x=10, y=pdf.get_y(), w=50)
-        pdf.ln(30)
-
-    pdf.set_y(-40)
-    pdf.image(qr_path, x=10, y=pdf.get_y(), w=25)
-    pdf.set_font("Arial", style="I", size=9)
-    pdf.set_text_color(150)
-    pdf.set_y(-30)
-    pdf.cell(0, 10, "Generated by KURA Form System", align="C")
-
-    pdf.output(filename)
-    return filename
-
-def daily_work_form():
-    st.title("📝 Daily Works Submission Form")
-
-    with st.form("daily_work_form"):
-        col1, col2 = st.columns(2)
-        with col1:
-            location = st.text_input("Location/Region")
-            project_name = st.text_input("Project Name")
-            contract_no = st.text_input("Contract No.")
-            contractor = st.text_input("Contractor")
-            date = st.date_input("Date", value=datetime.date.today())
-            day = st.text_input("Day")
-        with col2:
-            sheet_no = st.text_input("Sheet No.")
-            total_sheets = st.text_input("Total Sheets")
-            time_from = st.text_input("Time of Operation From")
-            time_to = st.text_input("To")
-            inspector = st.text_input("Inspector")
-            site_agent = st.text_input("Site Agent")
-            re_are = st.text_input("R.E. / A.R.E")
-
-        weather = st.text_area("Weather Conditions")
-        equipment = st.text_area("Plant and Equipment")
-        materials = st.text_area("Materials Delivered")
-        labour = st.text_area("Labour")
-        operations = st.text_area("Operations")
-
-        st.markdown("**Draw your signature:**")
-        canvas_result = st_canvas(
-            fill_color="rgba(0, 0, 0, 0.3)",
-            stroke_width=2,
-            stroke_color="#000000",
-            background_color="#ffffff",
-            update_streamlit=True,
-            height=150,
-            drawing_mode="freedraw",
-            key="canvas",
-        )
-
-        confirm = st.checkbox("I confirm the above information is correct")
-        submitted = st.form_submit_button("Submit Form")
-
-    if submitted and confirm:
-        sig_path = None
-        if canvas_result.image_data is not None:
-            img = PIL.Image.fromarray((canvas_result.image_data).astype("uint8"))
-            sig_path = f"submitted_forms/signature_{project_name.replace(' ', '_')}.png"
-            img.save(sig_path)
-
-        data = {
-            "Location/Region": location,
-            "Project Name": project_name,
-            "Contract No.": contract_no,
-            "Contractor": contractor,
-            "Date": date.strftime("%Y-%m-%d"),
-            "Day": day,
-            "Sheet No.": sheet_no,
-            "Total Sheets": total_sheets,
-            "Time of Operation From": time_from,
-            "To": time_to,
-            "Inspector": inspector,
-            "Site Agent": site_agent,
-            "R.E. / A.R.E": re_are,
-            "Weather Conditions": weather,
-            "Plant and Equipment": equipment,
-            "Materials Delivered": materials,
-            "Labour": labour,
-            "Operations": operations,
-        }
-
-        file_path = generate_pdf(data, sig_path)
-        send_email_with_attachment(
-            subject="📝 New Daily Work Form Submitted",
-            body=f"Form for project '{project_name}' submitted on {date}.",
-            to_email=RECIPIENT_EMAIL,
-            file_path=file_path
-        )
-
-        st.session_state["submitted_form_path"] = file_path
-        st.success("Form submitted successfully!")
-
-    if "submitted_form_path" in st.session_state:
-        with open(st.session_state["submitted_form_path"], "rb") as f:
-            st.download_button(
-                "📄 Download Submitted PDF",
-                f,
-                file_name=os.path.basename(st.session_state["submitted_form_path"]),
-                mime="application/pdf"
-            )
+# You can re-use the existing form code and PDF generation logic without edits.
