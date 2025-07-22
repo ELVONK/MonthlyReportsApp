@@ -154,9 +154,8 @@ def daily_work_form():
                 "Signature Path": signature_path
             }
             file_path = generate_pdf(data, signature_path)
+            st.session_state['submitted_form_path'] = file_path
             st.success("Form submitted and saved successfully!")
-            with open(file_path, "rb") as f:
-                st.download_button("📄 Download Submitted PDF", f, file_name=os.path.basename(file_path), mime="application/pdf")
 
             try:
                 send_email_with_attachment(
@@ -169,5 +168,20 @@ def daily_work_form():
             except Exception as e:
                 st.warning(f"Email failed: {e}")
 
+    # ✅ Render download button AFTER the form
+    if 'submitted_form_path' in st.session_state:
+        with open(st.session_state['submitted_form_path'], "rb") as f:
+            st.download_button(
+                "📄 Download Submitted PDF",
+                f,
+                file_name=os.path.basename(st.session_state['submitted_form_path']),
+                mime="application/pdf"
+            )
+
     st.divider()
     view_submitted_forms()
+
+# In your main app.py or menu system:
+# import daily_form
+# if menu_selection == "Daily Work Form":
+#     daily_form.daily_work_form()
