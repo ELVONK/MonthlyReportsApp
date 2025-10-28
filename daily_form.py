@@ -1,4 +1,4 @@
-# daily_form.py - Complete KURA Daily Work Form Streamlit Application
+# daily_form.py - Complete KURA Daily Work Form Streamlit Application (Error-safe version)
 
 import streamlit as st
 import pandas as pd
@@ -53,6 +53,10 @@ def send_email_with_attachment(subject, body, to_email, file_path):
 
 # --- PDF Generator ---
 def generate_pdf(data, signature_path=None):
+    def safe_str(value):
+        """Convert any value to safe printable string for FPDF"""
+        return str(value) if value is not None else ""
+
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", "B", 14)
@@ -69,7 +73,7 @@ def generate_pdf(data, signature_path=None):
     pdf.set_font("Arial", "", 10)
     for field in ["Location/Region", "Project Name", "Contract No.", "Contractor", "Day", "Date"]:
         pdf.cell(45, 7, f"{field}:", border=0)
-        pdf.cell(70, 7, str(data.get(field, "")), border=0)
+        pdf.cell(70, 7, safe_str(data.get(field)), border=0)
         if field in ["Contractor", "Date"]:
             pdf.ln(8)
     pdf.ln(5)
@@ -78,9 +82,9 @@ def generate_pdf(data, signature_path=None):
     pdf.cell(0, 8, "TIME OF OPERATION", ln=1)
     pdf.set_font("Arial", "", 10)
     pdf.cell(40, 7, "From:", 1)
-    pdf.cell(50, 7, str(data.get("Time of Operation From", "")), 1)
+    pdf.cell(50, 7, safe_str(data.get("Time of Operation From")), 1)
     pdf.cell(40, 7, "To:", 1)
-    pdf.cell(50, 7, str(data.get("To", "")), 1, ln=1)
+    pdf.cell(50, 7, safe_str(data.get("To")), 1, ln=1)
     pdf.ln(4)
 
     # WEATHER SECTION
@@ -91,9 +95,9 @@ def generate_pdf(data, signature_path=None):
     pdf.cell(70, 7, "Weather Conditions", 1)
     pdf.cell(70, 7, "Remarks", 1, ln=1)
     for row in data.get("Weather", []):
-        pdf.cell(50, 7, row.get("Time Duration", ""), 1)
-        pdf.cell(70, 7, row.get("Weather Conditions", ""), 1)
-        pdf.cell(70, 7, row.get("Remarks", ""), 1, ln=1)
+        pdf.cell(50, 7, safe_str(row.get("Time Duration")), 1)
+        pdf.cell(70, 7, safe_str(row.get("Weather Conditions")), 1)
+        pdf.cell(70, 7, safe_str(row.get("Remarks")), 1, ln=1)
     pdf.ln(5)
 
     # PLANT AND EQUIPMENT
@@ -105,10 +109,10 @@ def generate_pdf(data, signature_path=None):
     pdf.cell(50, 7, "Time From", 1)
     pdf.cell(50, 7, "Time To", 1, ln=1)
     for row in data.get("Equipment", []):
-        pdf.cell(60, 7, row.get("Description", ""), 1)
-        pdf.cell(30, 7, row.get("Plate No.", ""), 1)
-        pdf.cell(50, 7, row.get("Time From", ""), 1)
-        pdf.cell(50, 7, row.get("Time To", ""), 1, ln=1)
+        pdf.cell(60, 7, safe_str(row.get("Description")), 1)
+        pdf.cell(30, 7, safe_str(row.get("Plate No.")), 1)
+        pdf.cell(50, 7, safe_str(row.get("Time From")), 1)
+        pdf.cell(50, 7, safe_str(row.get("Time To")), 1, ln=1)
     pdf.ln(5)
 
     # MATERIALS DELIVERED
@@ -122,7 +126,7 @@ def generate_pdf(data, signature_path=None):
     pdf.ln(7)
     for row in data.get("Materials", []):
         for i, h in enumerate(headers):
-            pdf.cell(widths[i], 7, str(row.get(h, "")), 1)
+            pdf.cell(widths[i], 7, safe_str(row.get(h)), 1)
         pdf.ln(7)
     pdf.ln(5)
 
@@ -133,8 +137,8 @@ def generate_pdf(data, signature_path=None):
     pdf.cell(90, 7, "Personnel", 1)
     pdf.cell(90, 7, "No.", 1, ln=1)
     for row in data.get("Labour", []):
-        pdf.cell(90, 7, row.get("Personnel", ""), 1)
-        pdf.cell(90, 7, row.get("No.", ""), 1, ln=1)
+        pdf.cell(90, 7, safe_str(row.get("Personnel")), 1)
+        pdf.cell(90, 7, safe_str(row.get("No.")), 1, ln=1)
     pdf.ln(5)
 
     # OPERATIONS
@@ -148,7 +152,7 @@ def generate_pdf(data, signature_path=None):
     pdf.ln(7)
     for row in data.get("Operations", []):
         for i, h in enumerate(headers_ops):
-            pdf.cell(widths_ops[i], 7, str(row.get(h, "")), 1)
+            pdf.cell(widths_ops[i], 7, safe_str(row.get(h)), 1)
         pdf.ln(7)
 
     pdf.ln(10)
@@ -181,16 +185,11 @@ def display_kpi_summary(df):
     col2.metric("Total Labour Records", df["Labour Count"].sum())
     col3.metric("Total Materials Entries", df["Materials Count"].sum())
 
-    # Daily Submissions Trend
     daily_count = df.groupby("Date").size().reset_index(name="Submissions")
     chart = (
         alt.Chart(daily_count)
         .mark_line(point=True)
-        .encode(
-            x="Date:T",
-            y="Submissions:Q",
-            tooltip=["Date", "Submissions"],
-        )
+        .encode(x="Date:T", y="Submissions:Q", tooltip=["Date", "Submissions"])
         .properties(title="Submission Trend Over Time", height=300)
     )
     st.altair_chart(chart, use_container_width=True)
@@ -301,7 +300,7 @@ def daily_work_form():
         os.rename(file_path, archive_path)
         st.success(f"Form archived in: {archive_path}")
 
-        # Create DataFrame summary for KPI
+        # KPI dashboard summary
         df_summary = pd.DataFrame([{
             "Project Name": project_name,
             "Date": date,
